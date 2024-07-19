@@ -12,4 +12,4 @@ void splitWindow(MONITORINFO currentMonitor, std::vector<WindowData> windowsOnMo
 void resetWindowPosition(HWND hwnd);
 void resetWindows();
 void letWindowsFillSpace(RECT space, std::vector<HWND>);
-size_t getWindowsOnMonitor(MONITORINFO currentMonitor, std::vector<WindowData> &windowsOnMonitor);
+size_t getWindowsOnMonitor(MONITORINFO currentMonitor, std::vector<WindowData>& windowsOnMonitor);
