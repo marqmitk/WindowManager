@@ -10,16 +10,16 @@ enum class FormatDirection {
 };
 
 struct WindowData {
-  BOOL sizePinned = false;
-  BOOL positionPinned = false;
-  int zIndex = 0;
+  BOOL sizePinned_ = false;
+  BOOL positionPinned_ = false;
+  int zIndex_ = 0;
   HWND hwnd_;
   std::string title_;
   RECT rect_;
   RECT previousRect_;
-  FormatDirection formatDirection = FormatDirection::VERTICAL;
-  struct WindowData *nextWindow = nullptr;
-  struct WindowData *previousWindow = nullptr;
+  FormatDirection formatDirection_ = FormatDirection::VERTICAL;
+  struct WindowData *nextWindow_ = nullptr;
+  struct WindowData *previousWindow_ = nullptr;
 };
 
 

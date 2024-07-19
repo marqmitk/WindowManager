@@ -73,10 +73,10 @@ bool doesWindowExist(HWND hwnd)
 
 void toggleFormatDirection(HWND hwnd)
 {
-  if(windowMap[hwnd].formatDirection == FormatDirection::HORIZONTAL)
-    windowMap[hwnd].formatDirection = FormatDirection::VERTICAL;
+  if(windowMap[hwnd].formatDirection_ == FormatDirection::HORIZONTAL)
+    windowMap[hwnd].formatDirection_ = FormatDirection::VERTICAL;
   else
-    windowMap[hwnd].formatDirection = FormatDirection::HORIZONTAL;
+    windowMap[hwnd].formatDirection_ = FormatDirection::HORIZONTAL;
   return;
 }
 

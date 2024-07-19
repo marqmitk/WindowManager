@@ -57,26 +57,26 @@ void splitWindow(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
 	aWindowData->previousRect_ = activeWindowData.rect_;
 	nWindowData->previousRect_ = activeWindowData.rect_;
 
-	aWindowData->nextWindow = nWindowData;
-	nWindowData->previousWindow = aWindowData;
+	aWindowData->nextWindow_ = nWindowData;
+	nWindowData->previousWindow_ = aWindowData;
 
-	if(activeWindowData.formatDirection == FormatDirection::VERTICAL)
+	if(activeWindowData.formatDirection_ == FormatDirection::VERTICAL)
 	{
 		std::cout << "Vertical" << std::endl;
 		MoveWindow(activeWindowData.hwnd_, left, top, resolutionX / 2, resolutionY, TRUE);
 		MoveWindow(newWindowData.hwnd_, left + resolutionX / 2, top, resolutionX / 2, resolutionY, TRUE);
 	}
-	else if(activeWindowData.formatDirection == FormatDirection::HORIZONTAL)
+	else if(activeWindowData.formatDirection_ == FormatDirection::HORIZONTAL)
 	{
 		std::cout << "Horizontal" << std::endl;
 		MoveWindow(activeWindowData.hwnd_, left, top, resolutionX, resolutionY / 2, TRUE);
 		MoveWindow(newWindowData.hwnd_, left, top + resolutionY / 2, resolutionX, resolutionY / 2, TRUE);
 	}
-	std::cout << "Active window format direction before: " << (int)aWindowData->formatDirection << std::endl;
+	std::cout << "Active window format direction before: " << (int)aWindowData->formatDirection_ << std::endl;
 	toggleFormatDirection(activeWindowData.hwnd_);
-	std::cout << "Active window format direction: after" << (int)aWindowData->formatDirection << std::endl;
-	nWindowData->formatDirection = aWindowData->formatDirection;
-	std::cout << "New window format direction: " << (int)nWindowData->formatDirection << std::endl;
+	std::cout << "Active window format direction: after" << (int)aWindowData->formatDirection_ << std::endl;
+	nWindowData->formatDirection_ = aWindowData->formatDirection_;
+	std::cout << "New window format direction: " << (int)nWindowData->formatDirection_ << std::endl;
 }
 
 void resetWindowPosition(HWND hwnd)
@@ -127,17 +127,17 @@ void resetWindows()
 	{
 		if(!doesWindowExist(window.first))
 		{
-			WindowData* previousWindowData = window.second.previousWindow;
-			WindowData* nextWindowData = window.second.nextWindow;
+			WindowData* previousWindowData = window.second.previousWindow_;
+			WindowData* nextWindowData = window.second.nextWindow_;
 
 			if(nextWindowData)
 			{
 				resetWindowPosition(nextWindowData->hwnd_);
 				toggleFormatDirection(nextWindowData->hwnd_);
-				nextWindowData->previousWindow = nullptr;
+				nextWindowData->previousWindow_ = nullptr;
 
 				if(previousWindowData)
-					previousWindowData->nextWindow = nullptr;
+					previousWindowData->nextWindow_ = nullptr;
 
 				continue;
 			}
@@ -148,10 +148,10 @@ void resetWindows()
 				std::cout << "Prev Pointer to next WindowData " << nextWindowData << std::endl;
 				resetWindowPosition(previousWindowData->hwnd_);
 				toggleFormatDirection(previousWindowData->hwnd_);
-				previousWindowData->nextWindow = nullptr;
+				previousWindowData->nextWindow_ = nullptr;
 
 				if(nextWindowData)
-					nextWindowData->previousWindow = nullptr;
+					nextWindowData->previousWindow_ = nullptr;
 			}
 			windowMap.erase(window.first);
 			std::cout << "Finished handling resetting" << std::endl;
