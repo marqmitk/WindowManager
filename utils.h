@@ -19,6 +19,7 @@ struct WindowData
     std::string title_;
     RECT rect_;
     RECT previousRect_;
+    RECT rectBeforeSplit_;
     FormatDirection formatDirection_ = FormatDirection::VERTICAL;
     struct WindowData* nextWindow_ = nullptr;
     struct WindowData* previousWindow_ = nullptr;
@@ -40,3 +41,4 @@ BOOL CALLBACK saveWindow(HWND hwnd, LPARAM substring);
 int GetTaskBarHeight();
 bool doesWindowExist(HWND hwnd);
 void toggleFormatDirection(HWND hwnd);
+bool DidWindowPositionChange();

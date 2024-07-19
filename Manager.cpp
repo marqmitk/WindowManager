@@ -1,5 +1,4 @@
 #include "Manager.h"
-#include <algorithm>
 #include <windef.h>
 
 size_t getWindowsOnMonitor(MONITORINFO currentMonitor, std::vector<HWND>& windowsOnMonitor)
@@ -54,8 +53,8 @@ void splitWindow(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
     WindowData* aWindowData = &windowMap[activeWindowData.hwnd_];
     WindowData* nWindowData = &windowMap[newWindowData.hwnd_];
 
-    aWindowData->previousRect_ = activeWindowData.rect_;
-    nWindowData->previousRect_ = activeWindowData.rect_;
+    aWindowData->rectBeforeSplit_ = activeWindowData.rect_;
+    nWindowData->rectBeforeSplit_ = activeWindowData.rect_;
 
     aWindowData->nextWindow_ = nWindowData;
     nWindowData->previousWindow_ = aWindowData;
@@ -83,15 +82,26 @@ void resetWindowPosition(HWND hwnd)
 {
     WindowData windowData = windowMap[hwnd];
     MoveWindow(hwnd,
-               windowData.previousRect_.left,
-               windowData.previousRect_.top,
-               windowData.previousRect_.right - windowData.previousRect_.left,
-               windowData.previousRect_.bottom - windowData.previousRect_.top,
+               windowData.rectBeforeSplit_.left,
+               windowData.rectBeforeSplit_.top,
+               windowData.rectBeforeSplit_.right - windowData.rectBeforeSplit_.left,
+               windowData.rectBeforeSplit_.bottom - windowData.rectBeforeSplit_.top,
                TRUE);
     return;
 }
 
-void onWindowCountChanged()
+void onWindowCountChanged(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
+{
+    // Format windows
+    if(prevAmountOfWindows < amountOfWindows)
+        splitWindow(currentMonitor, windowsOnMonitor);
+    else if(prevAmountOfWindows > amountOfWindows)
+        resetWindows();
+
+    return;
+}
+
+void updateWindows(bool windowCountChanged, bool windowPositionChanged)
 {
     // Get current monitor
     MONITORINFO currentMonitor;
@@ -102,15 +112,13 @@ void onWindowCountChanged()
 
     // Get windows on monitor
     std::vector<HWND> windowsOnMonitor = {};
-    if(getWindowsOnMonitor(currentMonitor, windowsOnMonitor) == -1) // Fails if there is a maximized window
+    if(getWindowsOnMonitor(currentMonitor, windowsOnMonitor) == -1) // Fails if there is a maximized window (intended as when a window is maximized, it should not be formatted)
         return;
 
-    // Format windows
-    if(prevAmountOfWindows < amountOfWindows)
-        splitWindow(currentMonitor, windowsOnMonitor);
-    else if(prevAmountOfWindows > amountOfWindows)
-        resetWindows();
-
+    if(windowCountChanged)
+        onWindowCountChanged(currentMonitor, windowsOnMonitor);
+    if(windowPositionChanged)
+        letWindowsFillSpace(currentMonitor.rcMonitor, windowsOnMonitor);
     return;
 }
 

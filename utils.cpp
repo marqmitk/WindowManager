@@ -1,4 +1,6 @@
 #include "utils.h"
+#include <iostream>
+#include <ostream>
 
 int amountOfWindows = 0;
 int prevAmountOfWindows = 0;
@@ -17,9 +19,9 @@ std::vector<std::string> blacklist = {
     "Andockhilfe",
     "WinUI Desktop",
     "PowerToys.MeasureToolOverlay",
-    "▄berlauffenster der Taskleiste.",
+    "Überlauffenster der Taskleiste.",
     "PowerToys Find My Mouse",
-    "Ausf³hren",
+    "Ausführen",
 };
 
 int taskBarHeight;
@@ -32,10 +34,10 @@ bool operator==(const RECT& lhs, const RECT& rhs)
 BOOL CALLBACK saveWindow(HWND hwnd, LPARAM substring)
 {
 
-    const DWORD TITLE_SIZE = 1024;
-    TCHAR windowTitle[TITLE_SIZE];
+    const DWORD titleSize = 1024;
+    TCHAR windowTitle[titleSize];
 
-    GetWindowText(hwnd, windowTitle, TITLE_SIZE);
+    GetWindowText(hwnd, windowTitle, titleSize);
     int length = ::GetWindowTextLength(hwnd);
 
     std::string temp(&windowTitle[0]);
@@ -44,8 +46,9 @@ BOOL CALLBACK saveWindow(HWND hwnd, LPARAM substring)
     if(!IsWindowVisible(hwnd) || length == 0)
         return TRUE;
 
-    if(std::find(blacklist.begin(), blacklist.end(), title) != blacklist.end())
-        return TRUE;
+    for(auto blacklisted : blacklist)
+        if(strncmp(title.c_str(), blacklisted.c_str(), blacklisted.size()) == 0)
+            return TRUE;
 
     windowMap[hwnd].title_ = title;
     windowMap[hwnd].hwnd_ = hwnd;
@@ -78,4 +81,13 @@ void toggleFormatDirection(HWND hwnd)
     else
         windowMap[hwnd].formatDirection_ = FormatDirection::HORIZONTAL;
     return;
+}
+
+bool DidWindowPositionChange()
+{
+    for(auto windowData : windowMap)
+        if(!(windowData.second.rect_ == windowData.second.previousRect_))
+            return true;
+
+    return false;
 }

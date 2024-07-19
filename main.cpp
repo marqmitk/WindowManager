@@ -22,8 +22,12 @@ int main()
         windows.clear();
         amountOfWindows = 0;
         EnumWindows(saveWindow, 0);
-        if(amountOfWindows != prevAmountOfWindows)
-            onWindowCountChanged();
+
+        bool windowCountChanged = prevAmountOfWindows != amountOfWindows;
+        bool windowPositionChanged = DidWindowPositionChange();
+
+        if(windowCountChanged || windowPositionChanged)
+          updateWindows(windowCountChanged, windowPositionChanged);
 
         prevAmountOfWindows = amountOfWindows;
     }
