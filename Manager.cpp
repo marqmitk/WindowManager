@@ -83,11 +83,11 @@ void resetWindowPosition(HWND hwnd)
 {
 	WindowData windowData = windowMap[hwnd];
 	MoveWindow(hwnd,
-			   windowData.previousRect_.left,
-			   windowData.previousRect_.top,
-			   windowData.previousRect_.right - windowData.previousRect_.left,
-			   windowData.previousRect_.bottom - windowData.previousRect_.top,
-			   TRUE);
+						 windowData.previousRect_.left,
+						 windowData.previousRect_.top,
+						 windowData.previousRect_.right - windowData.previousRect_.left,
+						 windowData.previousRect_.bottom - windowData.previousRect_.top,
+						 TRUE);
 	return;
 }
 
