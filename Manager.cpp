@@ -114,8 +114,10 @@ void onWindowCountChanged()
 	return;
 }
 
-void letWindowsFillSpace(RECT space, std::vector<HWND>) {
-  return;
+void letWindowsFillSpace(RECT space, std::vector<HWND> windows)
+{
+	// TODO
+	return;
 }
 
 void resetWindows()
@@ -134,10 +136,10 @@ void resetWindows()
 				toggleFormatDirection(nextWindowData->hwnd_);
 				nextWindowData->previousWindow = nullptr;
 
-        if(previousWindowData)
-          previousWindowData->nextWindow = nullptr;
+				if(previousWindowData)
+					previousWindowData->nextWindow = nullptr;
 
-        continue;
+				continue;
 			}
 
 			if(previousWindowData)
@@ -148,9 +150,8 @@ void resetWindows()
 				toggleFormatDirection(previousWindowData->hwnd_);
 				previousWindowData->nextWindow = nullptr;
 
-        if(nextWindowData)
-          nextWindowData->previousWindow = nullptr;
-
+				if(nextWindowData)
+					nextWindowData->previousWindow = nullptr;
 			}
 			windowMap.erase(window.first);
 			std::cout << "Finished handling resetting" << std::endl;
