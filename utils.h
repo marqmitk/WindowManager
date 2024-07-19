@@ -6,22 +6,22 @@
 
 enum class FormatDirection
 {
-  VERTICAL,
-  HORIZONTAL
+    VERTICAL,
+    HORIZONTAL
 };
 
 struct WindowData
 {
-  BOOL sizePinned_ = false;
-  BOOL positionPinned_ = false;
-  int zIndex_ = 0;
-  HWND hwnd_;
-  std::string title_;
-  RECT rect_;
-  RECT previousRect_;
-  FormatDirection formatDirection_ = FormatDirection::VERTICAL;
-  struct WindowData* nextWindow_ = nullptr;
-  struct WindowData* previousWindow_ = nullptr;
+    BOOL sizePinned_ = false;
+    BOOL positionPinned_ = false;
+    int zIndex_ = 0;
+    HWND hwnd_;
+    std::string title_;
+    RECT rect_;
+    RECT previousRect_;
+    FormatDirection formatDirection_ = FormatDirection::VERTICAL;
+    struct WindowData* nextWindow_ = nullptr;
+    struct WindowData* previousWindow_ = nullptr;
 };
 
 extern int gap;

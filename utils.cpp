@@ -26,56 +26,56 @@ int taskBarHeight;
 
 bool operator==(const RECT& lhs, const RECT& rhs)
 { // Compares two RECT structs
-  return lhs.left == rhs.left && lhs.right == rhs.right && lhs.top == rhs.top && lhs.bottom == rhs.bottom;
+    return lhs.left == rhs.left && lhs.right == rhs.right && lhs.top == rhs.top && lhs.bottom == rhs.bottom;
 }
 
 BOOL CALLBACK saveWindow(HWND hwnd, LPARAM substring)
 {
 
-  const DWORD TITLE_SIZE = 1024;
-  TCHAR windowTitle[TITLE_SIZE];
+    const DWORD TITLE_SIZE = 1024;
+    TCHAR windowTitle[TITLE_SIZE];
 
-  GetWindowText(hwnd, windowTitle, TITLE_SIZE);
-  int length = ::GetWindowTextLength(hwnd);
+    GetWindowText(hwnd, windowTitle, TITLE_SIZE);
+    int length = ::GetWindowTextLength(hwnd);
 
-  std::string temp(&windowTitle[0]);
-  std::string title(temp.begin(), temp.end());
+    std::string temp(&windowTitle[0]);
+    std::string title(temp.begin(), temp.end());
 
-  if(!IsWindowVisible(hwnd) || length == 0)
+    if(!IsWindowVisible(hwnd) || length == 0)
+        return TRUE;
+
+    if(std::find(blacklist.begin(), blacklist.end(), title) != blacklist.end())
+        return TRUE;
+
+    windowMap[hwnd].title_ = title;
+    windowMap[hwnd].hwnd_ = hwnd;
+    // get coordinates
+    GetWindowRect(hwnd, &windowMap[hwnd].rect_);
+
+    windows.push_back(hwnd);
+    amountOfWindows++;
+
     return TRUE;
-
-  if(std::find(blacklist.begin(), blacklist.end(), title) != blacklist.end())
-    return TRUE;
-
-  windowMap[hwnd].title_ = title;
-  windowMap[hwnd].hwnd_ = hwnd;
-  // get coordinates
-  GetWindowRect(hwnd, &windowMap[hwnd].rect_);
-
-  windows.push_back(hwnd);
-  amountOfWindows++;
-
-  return TRUE;
 }
 
 int GetTaskBarHeight()
 {
-  HWND taskBar = FindWindowEx(0, 0, "Shell_TrayWnd", 0);
-  RECT taskBarRect;
-  GetWindowRect(taskBar, &taskBarRect);
-  return taskBarRect.bottom - taskBarRect.top;
+    HWND taskBar = FindWindowEx(0, 0, "Shell_TrayWnd", 0);
+    RECT taskBarRect;
+    GetWindowRect(taskBar, &taskBarRect);
+    return taskBarRect.bottom - taskBarRect.top;
 }
 
 bool doesWindowExist(HWND hwnd)
 {
-  return std::find(windows.begin(), windows.end(), hwnd) != windows.end();
+    return std::find(windows.begin(), windows.end(), hwnd) != windows.end();
 }
 
 void toggleFormatDirection(HWND hwnd)
 {
-  if(windowMap[hwnd].formatDirection_ == FormatDirection::HORIZONTAL)
-    windowMap[hwnd].formatDirection_ = FormatDirection::VERTICAL;
-  else
-    windowMap[hwnd].formatDirection_ = FormatDirection::HORIZONTAL;
-  return;
+    if(windowMap[hwnd].formatDirection_ == FormatDirection::HORIZONTAL)
+        windowMap[hwnd].formatDirection_ = FormatDirection::VERTICAL;
+    else
+        windowMap[hwnd].formatDirection_ = FormatDirection::HORIZONTAL;
+    return;
 }
