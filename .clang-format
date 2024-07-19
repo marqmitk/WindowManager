@@ -8,9 +8,9 @@
 
 # Common settings
 BasedOnStyle:  WebKit
-TabWidth:        4
-IndentWidth:     4
-UseTab:          Always
+TabWidth:        2
+IndentWidth:     2
+UseTab:          Never
 ColumnLimit: 200
 
 # Other languages JavaScript, Proto

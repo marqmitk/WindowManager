@@ -1,15 +1,17 @@
-#include <string>
 #include <algorithm>
+#include <map>
+#include <string>
 #include <vector>
 #include <windows.h>
-#include <map>
 
-enum class FormatDirection {
+enum class FormatDirection
+{
   VERTICAL,
   HORIZONTAL
 };
 
-struct WindowData {
+struct WindowData
+{
   BOOL sizePinned_ = false;
   BOOL positionPinned_ = false;
   int zIndex_ = 0;
@@ -18,10 +20,9 @@ struct WindowData {
   RECT rect_;
   RECT previousRect_;
   FormatDirection formatDirection_ = FormatDirection::VERTICAL;
-  struct WindowData *nextWindow_ = nullptr;
-  struct WindowData *previousWindow_ = nullptr;
+  struct WindowData* nextWindow_ = nullptr;
+  struct WindowData* previousWindow_ = nullptr;
 };
-
 
 extern int gap;
 extern int borderGap;
@@ -33,7 +34,7 @@ extern std::vector<std::string> blacklist;
 extern int amountOfWindows;
 extern int prevAmountOfWindows;
 
-bool operator==(const RECT &lhs, const RECT &rhs);
+bool operator==(const RECT& lhs, const RECT& rhs);
 
 BOOL CALLBACK saveWindow(HWND hwnd, LPARAM substring);
 int GetTaskBarHeight();
