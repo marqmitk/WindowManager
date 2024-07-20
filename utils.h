@@ -10,8 +10,43 @@ enum class FormatDirection
     HORIZONTAL
 };
 
-struct WindowData
+enum class DesktopType
 {
+    WINDOW,
+    CONTAINER
+};
+
+class Desktop {
+public:
+  void virtual printStructure() = 0;
+  DesktopType type_;
+
+};
+
+class Container : public Desktop
+{
+public:
+    static std::string lastId;
+    DesktopType type_ = DesktopType::CONTAINER;
+    std::string id_;
+    Container();
+    ~Container();
+    RECT rect_;
+    std::vector<Desktop*> m_leafs_; 
+    Container* m_parent_ = nullptr;
+
+    void addLeaf(Desktop* leaf);
+    void removeLeaf(Desktop* leaf);
+    int getWindowCount();
+    void printStructure();
+};
+
+class WindowData : public Desktop
+{
+public:
+    static size_t lastId;
+    DesktopType type_ = DesktopType::WINDOW;
+    size_t id_;
     BOOL sizePinned_ = false;
     BOOL positionPinned_ = false;
     int zIndex_ = 0;
@@ -23,6 +58,8 @@ struct WindowData
     FormatDirection formatDirection_ = FormatDirection::VERTICAL;
     struct WindowData* nextWindow_ = nullptr;
     struct WindowData* previousWindow_ = nullptr;
+    Container* parent_ = nullptr;
+    void printStructure();
 };
 
 extern int gap;

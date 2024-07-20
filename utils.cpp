@@ -24,6 +24,72 @@ std::vector<std::string> blacklist = {
     "Ausführen",
 };
 
+std::string Container::lastId = "a";
+size_t WindowData::lastId = 0;
+
+Container::Container()
+{
+    this->id_ = Container::lastId[0];
+    Container::lastId[0]++;
+}
+
+Container::~Container()
+{
+    std::cout << "Deleting container " << this->id_ << std::endl;
+    for(auto leaf : m_leafs_)
+    {
+        if(leaf->type_ == DesktopType::WINDOW)
+        {
+            WindowData* window = dynamic_cast<WindowData*>(leaf);
+            std::cout << "Still has window " << window->title_ << std::endl;
+        }
+        else
+        {
+            Container* container = dynamic_cast<Container*>(leaf);
+            std::cout << "Still has container " << container->id_ << std::endl;
+        }
+    }
+}
+
+void Container::addLeaf(Desktop* leaf)
+{
+    m_leafs_.push_back(leaf);
+}
+
+void Container::removeLeaf(Desktop* leaf)
+{
+    m_leafs_.erase(std::remove(m_leafs_.begin(), m_leafs_.end(), leaf), m_leafs_.end());
+}
+
+int Container::getWindowCount()
+{
+    size_t count = 0;
+    for(auto leaf : m_leafs_)
+        if(leaf->type_ == DesktopType::WINDOW)
+            count++;
+    return count;
+}
+
+void Container::printStructure()
+{
+    std::cout << "--- " << this->id_ << " ---" << std::endl;
+    int i = 0;
+    for(auto leaf : m_leafs_)
+    {
+        std::cout << i++ << ": ";
+        if(leaf == nullptr)
+            std::cout << "nullptr" << std::endl;
+        else
+            leaf->printStructure();
+    }
+    std::cout << "--- " << this->id_ << " ---" << std::endl;
+}
+
+void WindowData::printStructure()
+{
+    std::cout << this->id_ << " " << this->title_ << std::endl;
+}
+
 int taskBarHeight;
 
 bool operator==(const RECT& lhs, const RECT& rhs)
@@ -54,6 +120,7 @@ BOOL CALLBACK saveWindow(HWND hwnd, LPARAM substring)
     windowMap[hwnd].hwnd_ = hwnd;
     // get coordinates
     GetWindowRect(hwnd, &windowMap[hwnd].rect_);
+    windowMap[hwnd].id_ = WindowData::lastId++;
 
     windows.push_back(hwnd);
     amountOfWindows++;
