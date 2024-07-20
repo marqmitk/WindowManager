@@ -35,18 +35,17 @@ Container::Container()
 
 Container::~Container()
 {
-    std::cout << "Deleting container " << this->id_ << std::endl;
     for(auto leaf : m_leafs_)
     {
         if(leaf->type_ == DesktopType::WINDOW)
         {
             WindowData* window = dynamic_cast<WindowData*>(leaf);
-            std::cout << "Still has window " << window->title_ << std::endl;
+            std::cout << "Container '" << this->id_ << "' is  getting deleted but still has window '" << window->title_ << "'" << std::endl;
         }
         else
         {
             Container* container = dynamic_cast<Container*>(leaf);
-            std::cout << "Still has container " << container->id_ << std::endl;
+            std::cout << "Container '" << this->id_ << "' is  getting deleted but still has container '" << container->id_ << "'" << std::endl;
         }
     }
 }
@@ -72,7 +71,15 @@ int Container::getWindowCount()
 
 void Container::printStructure()
 {
-    std::cout << "--- " << this->id_ << " ---" << std::endl;
+    Desktop* parent = this->m_parent_;
+    if(parent == nullptr)
+      std::cout << "--- " << this->id_ << " --- with no parent" << std::endl;
+    else {
+      if(parent->type_ == DesktopType::WINDOW)
+        std::cout << "--- " << this->id_ << " --- with parent " << dynamic_cast<WindowData*>(parent)->id_ << std::endl;
+      else
+        std::cout << "--- " << this->id_ << " --- with parent " << dynamic_cast<Container*>(parent)->id_ << std::endl;
+    }
     int i = 0;
     for(auto leaf : m_leafs_)
     {

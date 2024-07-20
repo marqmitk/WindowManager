@@ -63,12 +63,12 @@ void splitWindow(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
     nWindowData->previousWindow_ = aWindowData;
 
     Container* newParent = new Container();
-    newParent->addLeaf(aWindowData);
 
     if(aWindowData->parent_)
     {
         aWindowData->parent_->removeLeaf(aWindowData);
         aWindowData->parent_->addLeaf(newParent);
+        newParent->m_parent_ = aWindowData->parent_;
         aWindowData->parent_ = newParent;
     }
     else
@@ -76,7 +76,10 @@ void splitWindow(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
         root = newParent;
     }
     newParent->rect_ = activeWindowData.rect_;
+    newParent->addLeaf(nWindowData);
+    newParent->addLeaf(aWindowData);
     aWindowData->parent_ = newParent;
+    nWindowData->parent_ = newParent;
 
     if(activeWindowData.formatDirection_ == FormatDirection::VERTICAL)
     {
@@ -88,13 +91,11 @@ void splitWindow(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
         MoveWindow(activeWindowData.hwnd_, left, top, resolutionX, resolutionY / 2, TRUE);
         MoveWindow(newWindowData.hwnd_, left, top + resolutionY / 2, resolutionX, resolutionY / 2, TRUE);
     }
+
     toggleFormatDirection(activeWindowData.hwnd_);
     nWindowData->formatDirection_ = aWindowData->formatDirection_;
 
-    nWindowData->parent_ = aWindowData->parent_;
-    newParent->addLeaf(nWindowData);
-
-    std::cout << std::endl << std::endl;
+    std::cout << "Root is: " << root->id_ << std::endl;
     root->printStructure();
     return;
 }
@@ -156,8 +157,9 @@ void MoveWindowToRect(HWND hwnd, RECT rect)
 void resetWindows()
 {
     std::cout << "Resetting windows" << std::endl;
+    std::cout << "Root is: " << root->id_ << std::endl;
     if(root)
-      root->printStructure();
+        root->printStructure();
     std::map<HWND, WindowData> windowMapCopy(windowMap);
     for(auto window : windowMapCopy)
     {
@@ -169,6 +171,8 @@ void resetWindows()
             windowMap.erase(window.first);
             if(parent == nullptr)
                 return;
+
+            parent->removeLeaf(&closedWindow);
 
             // Case 1: The parent only had leafs
             if(parent->getWindowCount() == 2)
@@ -203,9 +207,18 @@ void resetWindows()
                     }
                     std::cout << "Finished leaf" << std::endl;
                 }
-                std::cout << "Deleting parent" << std::endl;
                 delete parent;
+            }
+
+            // Case 2 The parent had one container and one leaf
+            else if(parent->getWindowCount() == 1)
+            {
+                std::cout << "Case 2" << std::endl;
             }
         }
     }
+
+    std::cout << "Root is: " << root->id_ << std::endl;
+    if(root)
+        root->printStructure();
 }
