@@ -1,12 +1,8 @@
 #include "Utils.hpp"
-#include <iostream>
-#include <ostream>
 
 int amountOfWindows = 0;
 int prevAmountOfWindows = 0;
-
-int gap = 3;
-int borderGap = 3;
+HWND lastWindowGettingMoved = nullptr;
 
 std::vector<HWND> windows;
 std::map<HWND, WindowData> windowMap;
@@ -22,13 +18,31 @@ std::vector<std::string> blacklist = {
     "Überlauffenster der Taskleiste.",
     "PowerToys Find My Mouse",
     "Ausführen",
+    "Einstellungen", // not happy with having that in the blacklist but it randomly pops up without settings being open
+    "SystemResourceNotifyWindow",
 };
 
-int taskBarHeight;
+int taskBarHeight = GetTaskBarHeight();
 
 bool operator==(const RECT& lhs, const RECT& rhs)
 { // Compares two RECT structs
     return lhs.left == rhs.left && lhs.right == rhs.right && lhs.top == rhs.top && lhs.bottom == rhs.bottom;
+}
+
+void listenForKeybinds()
+{
+    if(GetAsyncKeyState(VK_F3) & 0x8000) // for debugging purposes
+        exit(0);
+
+    if(GetAsyncKeyState(VK_F2) & 0x8000) // for debugging purposes
+        system("start cmd");
+}
+
+void updateWindowContainers()
+{
+    windows.clear();
+    amountOfWindows = 0;
+    EnumWindows(saveWindow, 0);
 }
 
 BOOL CALLBACK saveWindow(HWND hwnd, LPARAM substring)
@@ -50,12 +64,17 @@ BOOL CALLBACK saveWindow(HWND hwnd, LPARAM substring)
         if(strncmp(title.c_str(), blacklisted.c_str(), blacklisted.size()) == 0)
             return TRUE;
 
-    windowMap[hwnd].title_ = title;
-    windowMap[hwnd].hwnd_ = hwnd;
-    // get coordinates
+    bool isSaved = isWindowSaved(hwnd);
+
+    if(!isSaved)
+    {
+        windowMap[hwnd].id_ = WindowData::lastId++;
+        windowMap[hwnd].type_ = DesktopType::WINDOW;
+        windowMap[hwnd].title_ = title;
+        windowMap[hwnd].hwnd_ = hwnd;
+    }
+
     GetWindowRect(hwnd, &windowMap[hwnd].rect_);
-    windowMap[hwnd].id_ = WindowData::lastId++;
-    windowMap[hwnd].type_ = DesktopType::WINDOW;
 
     windows.push_back(hwnd);
     amountOfWindows++;
@@ -76,11 +95,16 @@ bool doesWindowExist(HWND hwnd)
     return std::find(windows.begin(), windows.end(), hwnd) != windows.end();
 }
 
-bool DidWindowPositionChange()
+bool isWindowSaved(HWND hwnd)
 {
-    for(auto windowData : windowMap)
-        if(!(windowData.second.rect_ == windowData.second.previousRect_))
-            return true;
+    return windowMap.find(hwnd) != windowMap.end();
+}
 
-    return false;
+HWND getWindowGettingMoved()
+{
+    GUITHREADINFO guiInfo;
+    guiInfo.cbSize = sizeof(GUITHREADINFO);
+
+    GetGUIThreadInfo(GetWindowThreadProcessId(GetForegroundWindow(), NULL), &guiInfo);
+    return guiInfo.hwndMoveSize;
 }

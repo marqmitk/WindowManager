@@ -5,36 +5,30 @@ BOOL running = true;
 
 int main()
 {
-
-    taskBarHeight = GetTaskBarHeight();
-    std::cout << "Taskbar height: " << taskBarHeight << std::endl;
-
-    EnumWindows(saveWindow, 0);
-    amountOfWindows = windows.size();
-    prevAmountOfWindows = amountOfWindows;
     std::cout << "Ready" << std::endl;
+
+    updateWindowContainers();
 
     while(running)
     {
-        if(GetAsyncKeyState(VK_F3) & 0x8000) // for debugging purposes
-            exit(0);
+        listenForKeybinds();
+        updateWindowContainers();
 
-        if(GetAsyncKeyState(VK_F2) & 0x8000) // for debugging purposes
-            system("start cmd");
+        if(prevAmountOfWindows != amountOfWindows)
+            updateWindows(true);
 
-        windows.clear();
-        amountOfWindows = 0;
-        EnumWindows(saveWindow, 0);
-
-        bool windowCountChanged = prevAmountOfWindows != amountOfWindows;
-        bool windowPositionChanged = DidWindowPositionChange();
-        windowPositionChanged = false; // for debugging purposes
-
-        if(windowCountChanged || windowPositionChanged)
-            updateWindows(windowCountChanged, windowPositionChanged);
+        HWND windowGettingMoved = getWindowGettingMoved();
+        if(windowGettingMoved != lastWindowGettingMoved && lastWindowGettingMoved != nullptr)
+        {
+            updateWindows();
+            lastWindowGettingMoved = windowGettingMoved;
+        } else if(windowGettingMoved != nullptr && lastWindowGettingMoved == nullptr)
+        {
+            lastWindowGettingMoved = windowGettingMoved;
+            windowMap[lastWindowGettingMoved].previousRect_ = windowMap[lastWindowGettingMoved].getOriginalRect();
+        }
 
         prevAmountOfWindows = amountOfWindows;
     }
-
     return 0;
 }

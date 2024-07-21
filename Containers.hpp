@@ -1,3 +1,4 @@
+#include "Config.hpp"
 #include <algorithm>
 #include <iostream>
 #include <ostream>
@@ -38,7 +39,6 @@ public:
     static std::string lastId;
     std::string id_;
     Container();
-    ~Container();
     std::vector<Desktop*> m_leafs_;
 
     void addLeaf(Desktop* leaf);
@@ -61,8 +61,9 @@ public:
     HWND hwnd_;
     std::string title_;
     RECT previousRect_;
-    struct WindowData* nextWindow_ = nullptr;
-    struct WindowData* previousWindow_ = nullptr;
+    RECT originalRect_;
+
+    RECT getOriginalRect();
     void printStructure(int depth = 0);
-    void moveWindowToRect(RECT rect);
+    void moveWindowToRect(RECT rect, int gap = 0);
 };

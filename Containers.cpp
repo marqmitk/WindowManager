@@ -18,23 +18,6 @@ Container::Container()
     this->type_ = DesktopType::CONTAINER;
 }
 
-Container::~Container()
-{
-    for(auto leaf : m_leafs_)
-    {
-        if(leaf->type_ == DesktopType::WINDOW)
-        {
-            WindowData* window = dynamic_cast<WindowData*>(leaf);
-            std::cout << "Container '" << this->id_ << "' is  getting deleted but still has window '" << window->title_ << "'" << std::endl;
-        }
-        else
-        {
-            Container* container = dynamic_cast<Container*>(leaf);
-            std::cout << "Container '" << this->id_ << "' is  getting deleted but still has container '" << container->id_ << "'" << std::endl;
-        }
-    }
-}
-
 void Container::addLeaf(Desktop* leaf)
 {
     m_leafs_.push_back(leaf);
@@ -186,8 +169,23 @@ void WindowData::printStructure(int depth)
         std::cout << "<window title='" << this->title_ << "' id='" << this->id_ << "' parent='" << this->parent_->id_ << "'/>" << std::endl;
 }
 
-void WindowData::moveWindowToRect(RECT rect)
+void WindowData::moveWindowToRect(RECT rect, int gap)
 {
+    RECT rectToMove = rect;
+    rectToMove.left += gap;
+    rectToMove.top += gap;
+    rectToMove.right -= gap;
+    rectToMove.bottom -= gap;
+
     this->rect_ = rect;
-    MoveWindow(this->hwnd_, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, TRUE);
+    this->originalRect_ = this->rect_;
+
+    MoveWindow(this->hwnd_, rectToMove.left, rectToMove.top, rectToMove.right - rectToMove.left, rectToMove.bottom - rectToMove.top, TRUE);
+}
+
+RECT WindowData::getOriginalRect()
+{
+    if(this->originalRect_.left == 0 && this->originalRect_.top == 0 && this->originalRect_.right == 0 && this->originalRect_.bottom == 0)
+        return this->rect_;
+    return this->originalRect_;
 }

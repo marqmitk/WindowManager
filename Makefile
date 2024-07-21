@@ -1,4 +1,4 @@
-objects = Manager.cpp Utils.cpp Containers.cpp main.cpp
+objects = Config.cpp Manager.cpp Utils.cpp Containers.cpp main.cpp
 cc = g++
 flags = -pthread -lgdi32
 output = a.exe

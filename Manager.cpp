@@ -36,10 +36,10 @@ void splitWindow(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
 
     if(windowsOnMonitor.size() == 1)
     {
-        top = currentMonitor.rcMonitor.top + borderGap;
-        left = currentMonitor.rcMonitor.left + borderGap;
-        right = currentMonitor.rcMonitor.right - borderGap;
-        bottom = currentMonitor.rcMonitor.bottom - borderGap - taskBarHeight;
+        top = currentMonitor.rcMonitor.top + 2 * gapSize;
+        left = currentMonitor.rcMonitor.left + gapSize;
+        right = currentMonitor.rcMonitor.right - gapSize;
+        bottom = currentMonitor.rcMonitor.bottom - (gapSize / 2) - taskBarHeight;
         RECT rect = {left, top, right - left, bottom - top};
         nWindowData.moveWindowToRect(rect);
         return;
@@ -47,6 +47,8 @@ void splitWindow(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
 
     WindowData& aWindowData = windowMap[windowsOnMonitor[1]];
 
+    aWindowData.rect_ = aWindowData.getOriginalRect();
+    nWindowData.rect_ = nWindowData.getOriginalRect();
     top = aWindowData.rect_.top;
     left = aWindowData.rect_.left;
     right = aWindowData.rect_.right;
@@ -67,6 +69,7 @@ void splitWindow(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
     {
         root = newParent;
     }
+
     newParent->rect_ = aWindowData.rect_;
     newParent->addLeaf(&nWindowData);
     newParent->addLeaf(&aWindowData);
@@ -87,15 +90,18 @@ void splitWindow(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
         nRect = {left, top + resolutionY / 2, right, bottom};
     }
 
-    aWindowData.moveWindowToRect(aRect);
-    nWindowData.moveWindowToRect(nRect);
+    aWindowData.moveWindowToRect(aRect, gapSize);
+    nWindowData.moveWindowToRect(nRect, gapSize);
 
     aWindowData.toggleFormatDirection();
     nWindowData.formatDirection_ = aWindowData.formatDirection_;
     newParent->formatDirection_ = aWindowData.formatDirection_;
 
-    std::cout << "Root is: " << root->id_ << std::endl;
-    root->printStructure();
+    if(root)
+    {
+        std::cout << "Root is: " << root->id_ << std::endl;
+        root->printStructure();
+    }
     return;
 }
 
@@ -106,11 +112,75 @@ void onWindowCountChanged(MONITORINFO currentMonitor, std::vector<HWND> windowsO
         splitWindow(currentMonitor, windowsOnMonitor);
     else if(prevAmountOfWindows > amountOfWindows)
         resetWindows();
+    return;
+}
+
+void onWindowMoved(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
+{
+    WindowData& movedWindowData = windowMap[lastWindowGettingMoved];
+    WindowData& overlappedWindowData = getOverlappedWindowData(movedWindowData, windowsOnMonitor);
+    movedWindowData.rect_ = movedWindowData.previousRect_;
+    if(overlappedWindowData.hwnd_ == nullptr) {
+      movedWindowData.moveWindowToRect(movedWindowData.rect_, gapSize);
+      return;
+    }
+
+    overlappedWindowData.rect_ = overlappedWindowData.getOriginalRect();
+    swapWindows(movedWindowData, overlappedWindowData);
 
     return;
 }
 
-void updateWindows(bool windowCountChanged, bool windowPositionChanged)
+void swapWindows(WindowData& window1, WindowData& window2)
+{
+    if(window1.hwnd_ == window2.hwnd_)
+        return;
+    if(window1.hwnd_ == nullptr || window2.hwnd_ == nullptr)
+        return;
+
+    RECT window1Rect = window1.rect_;
+    RECT window2Rect = window2.rect_;
+    Container* window1Parent = window1.parent_;
+    Container* window2Parent = window2.parent_;
+
+    window1.moveWindowToRect(window2Rect, gapSize);
+    window2.moveWindowToRect(window1Rect, gapSize);
+
+    window1.parent_ = window2Parent;
+    window2.parent_ = window1Parent;
+    return;
+}
+
+WindowData& getOverlappedWindowData(WindowData& movedWindowData, std::vector<HWND> windowsOnMonitor)
+{
+    size_t biggestOverlap = 0;
+    HWND biggestOverlapWindow = nullptr;
+    for(auto window : windowsOnMonitor)
+    {
+        if(window == movedWindowData.hwnd_)
+            continue;
+
+        RECT movedRect = movedWindowData.rect_;
+        RECT windowRect = windowMap[window].rect_;
+        RECT intersection;
+        if(IntersectRect(&intersection, &movedRect, &windowRect))
+        {
+            size_t overlap = (intersection.right - intersection.left) * (intersection.bottom - intersection.top);
+            if(overlap > biggestOverlap)
+            {
+                biggestOverlap = overlap;
+                biggestOverlapWindow = window;
+            }
+        }
+    }
+
+    if(biggestOverlapWindow == nullptr)
+        return *new WindowData();
+
+    return windowMap[biggestOverlapWindow];
+}
+
+void updateWindows(bool windowCountChanged)
 {
     // Get current monitor
     MONITORINFO currentMonitor;
@@ -125,14 +195,14 @@ void updateWindows(bool windowCountChanged, bool windowPositionChanged)
 
     if(windowCountChanged)
         onWindowCountChanged(currentMonitor, windowsOnMonitor);
-    // if(windowPositionChanged)
+    else
+        onWindowMoved(currentMonitor, windowsOnMonitor);
 
     return;
 }
 
 void resetWindows()
 {
-
     std::cout << "--- Resetting windows --- " << std::endl;
 
     if(root)
@@ -158,7 +228,7 @@ void resetWindows()
             {
                 std::cout << "--- Case 1 ---" << std::endl;
                 WindowData* leafData = dynamic_cast<WindowData*>(otherLeaf);
-                leafData->moveWindowToRect(parent->rect_);
+                leafData->moveWindowToRect(parent->rect_, gapSize);
                 std::cout << "--- Case 1 ---" << std::endl;
             }
             // Case 2: The parent had a leaf and a container
