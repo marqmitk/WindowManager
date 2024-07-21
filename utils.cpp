@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "utils.hpp"
 #include <iostream>
 #include <ostream>
 
@@ -99,45 +99,37 @@ std::vector<std::pair<WindowData*, size_t>> Container::getAllWindows(int depth)
 void Container::sizeUp(RECT rect)
 {
     this->rect_ = rect;
-    int width = rect.right - rect.left;
-    int height = rect.bottom - rect.top;
-    int x = rect.left;
-    int y = rect.top;
-    int leafWidth = width;
-    int leafHeight = height;
+    long width = rect.right - rect.left;
+    long height = rect.bottom - rect.top;
+    long x = rect.left;
+    long y = rect.top;
+    long leafWidth = width;
+    long leafHeight = height;
     int i = 0; // can be at maximum 1
     for(auto leaf : m_leafs_)
     {
         if(formatDirection_ == FormatDirection::VERTICAL)
         {
-            leafHeight = leaf->rect_.bottom - leaf->rect_.top;
-            std::cout << "Leaf height: " << leafHeight << std::endl;
-
-            rect = {x, y, x + width, y + leafHeight};
-
+            rect = {x, y, x + width, y + height / 2};
             if(i != 0)
-                rect = {x, y + leafHeight, x + width, y + height};
+                rect = {x, y + height / 2, x + width, y + height};
         }
         else
         {
-            std::cout << "Horizontal" << std::endl;
-            leafWidth = leaf->rect_.right - leaf->rect_.left;
-
-            rect = {x, y, x + leafWidth, y + height};
-
+            rect = {x, y, x + width / 2, y + height};
             if(i != 0)
-                rect = {x + leafWidth, y, x + width, y + height};
-
-            std::cout << "Rect: " << rect.left << " " << rect.top << " " << rect.right << " " << rect.bottom << std::endl;
+                rect = {x + width / 2, y, x + width, y + height};
         }
 
         if(leaf->type_ == DesktopType::WINDOW)
         {
+            std::cout << "Sizing window to " << rect.left << " " << rect.top << " " << rect.right << " " << rect.bottom << std::endl;
             WindowData* window = dynamic_cast<WindowData*>(leaf);
             window->rect_ = rect;
         }
         else if(leaf->type_ == DesktopType::CONTAINER)
         {
+            std::cout << "Sizing container to " << rect.left << " " << rect.top << " " << rect.right << " " << rect.bottom << std::endl;
             Container* container = dynamic_cast<Container*>(leaf);
             container->sizeUp(rect);
         }
