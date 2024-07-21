@@ -27,10 +27,24 @@ std::vector<std::string> blacklist = {
 std::string Container::lastId = "a";
 size_t WindowData::lastId = 0;
 
+void MoveWindowToRect(HWND hwnd, RECT rect)
+{
+    MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, TRUE);
+}
+
+void Desktop::toggleFormatDirection()
+{
+    if(this->formatDirection_ == FormatDirection::VERTICAL)
+        this->formatDirection_ = FormatDirection::HORIZONTAL;
+    else
+        this->formatDirection_ = FormatDirection::VERTICAL;
+}
+
 Container::Container()
 {
     this->id_ = Container::lastId[0];
     Container::lastId[0]++;
+    this->type_ = DesktopType::CONTAINER;
 }
 
 Container::~Container()
@@ -60,25 +74,123 @@ void Container::removeLeaf(Desktop* leaf)
     m_leafs_.erase(std::remove(m_leafs_.begin(), m_leafs_.end(), leaf), m_leafs_.end());
 }
 
+std::vector<std::pair<WindowData*, size_t>> Container::getAllWindows(int depth)
+{
+    std::vector<std::pair<WindowData*, size_t>> windowList;
+    for(auto leaf : m_leafs_)
+    {
+        if(leaf->type_ == DesktopType::WINDOW)
+        {
+            std::pair<WindowData*, size_t> windowPair = std::make_pair(dynamic_cast<WindowData*>(leaf), depth);
+            windowList.push_back(windowPair);
+        }
+        else
+        {
+            std::cout << "Starting recursion" << std::endl;
+            Container* container = dynamic_cast<Container*>(leaf);
+            std::vector<std::pair<WindowData*, size_t>> containerWindows = container->getAllWindows(depth + 1);
+            windowList.insert(windowList.end(), containerWindows.begin(), containerWindows.end());
+            std::cout << "Ending recursion" << std::endl;
+        }
+    }
+    return windowList;
+}
+
+void Container::sizeUp(RECT rect)
+{
+    this->rect_ = rect;
+    int width = rect.right - rect.left;
+    int height = rect.bottom - rect.top;
+    int x = rect.left;
+    int y = rect.top;
+    int leafWidth = width;
+    int leafHeight = height;
+    int i = 0; // can be at maximum 1
+    for(auto leaf : m_leafs_)
+    {
+        if(formatDirection_ == FormatDirection::VERTICAL)
+        {
+            leafHeight = leaf->rect_.bottom - leaf->rect_.top;
+            std::cout << "Leaf height: " << leafHeight << std::endl;
+
+            rect = {x, y, x + width, y + leafHeight};
+
+            if(i != 0)
+                rect = {x, y + leafHeight, x + width, y + height};
+        }
+        else
+        {
+            std::cout << "Horizontal" << std::endl;
+            leafWidth = leaf->rect_.right - leaf->rect_.left;
+
+            rect = {x, y, x + leafWidth, y + height};
+
+            if(i != 0)
+                rect = {x + leafWidth, y, x + width, y + height};
+
+            std::cout << "Rect: " << rect.left << " " << rect.top << " " << rect.right << " " << rect.bottom << std::endl;
+        }
+
+        if(leaf->type_ == DesktopType::WINDOW)
+        {
+            WindowData* window = dynamic_cast<WindowData*>(leaf);
+            window->rect_ = rect;
+        }
+        else if(leaf->type_ == DesktopType::CONTAINER)
+        {
+            Container* container = dynamic_cast<Container*>(leaf);
+            container->sizeUp(rect);
+        }
+        else
+        {
+            std::cout << "Type is: " << (int)leaf->type_ << std::endl;
+            exit(1);
+        }
+        i++;
+    }
+}
+
+void Container::updateWindowPositions()
+{
+    for(auto leaf : m_leafs_)
+    {
+        if(leaf->type_ == DesktopType::WINDOW)
+        {
+            WindowData* window = dynamic_cast<WindowData*>(leaf);
+            MoveWindowToRect(window->hwnd_, window->rect_);
+        }
+        else if(leaf->type_ == DesktopType::CONTAINER)
+        {
+            Container* container = dynamic_cast<Container*>(leaf);
+            container->updateWindowPositions();
+        }
+        else
+        {
+            std::cout << "Type is: " << (int)leaf->type_ << std::endl;
+            exit(1);
+        }
+    }
+}
+
 int Container::getWindowCount()
 {
     size_t count = 0;
     for(auto leaf : m_leafs_)
         if(leaf->type_ == DesktopType::WINDOW)
             count++;
+        else
+            std::cout << "Type is: " << (int)leaf->type_ << std::endl;
     return count;
 }
 
 void Container::printStructure()
 {
-    Desktop* parent = this->m_parent_;
+    Container* parent = this->parent_;
     if(parent == nullptr)
-      std::cout << "--- " << this->id_ << " --- with no parent" << std::endl;
-    else {
-      if(parent->type_ == DesktopType::WINDOW)
-        std::cout << "--- " << this->id_ << " --- with parent " << dynamic_cast<WindowData*>(parent)->id_ << std::endl;
-      else
-        std::cout << "--- " << this->id_ << " --- with parent " << dynamic_cast<Container*>(parent)->id_ << std::endl;
+        std::cout << "--- " << this->id_ << " --- with no parent" << std::endl;
+    else
+    {
+        std::cout << "--- " << this->id_ << " --- with parent " << parent->id_ << std::endl;
     }
     int i = 0;
     for(auto leaf : m_leafs_)
@@ -128,6 +240,7 @@ BOOL CALLBACK saveWindow(HWND hwnd, LPARAM substring)
     // get coordinates
     GetWindowRect(hwnd, &windowMap[hwnd].rect_);
     windowMap[hwnd].id_ = WindowData::lastId++;
+    windowMap[hwnd].type_ = DesktopType::WINDOW;
 
     windows.push_back(hwnd);
     amountOfWindows++;
@@ -146,15 +259,6 @@ int GetTaskBarHeight()
 bool doesWindowExist(HWND hwnd)
 {
     return std::find(windows.begin(), windows.end(), hwnd) != windows.end();
-}
-
-void toggleFormatDirection(HWND hwnd)
-{
-    if(windowMap[hwnd].formatDirection_ == FormatDirection::HORIZONTAL)
-        windowMap[hwnd].formatDirection_ = FormatDirection::VERTICAL;
-    else
-        windowMap[hwnd].formatDirection_ = FormatDirection::HORIZONTAL;
-    return;
 }
 
 bool DidWindowPositionChange()

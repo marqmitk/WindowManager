@@ -1,7 +1,7 @@
 all:
 	@echo "Building and Running..."
-	g++ -o Manager.exe utils.cpp Manager.cpp main.cpp -pthread -lgdi32
-	./Manager.exe
+	g++ -o a.exe utils.cpp Manager.cpp main.cpp -pthread -lgdi32
+	./a.exe
 
 debug:
 	@echo "Building in Debug mode..."

@@ -12,53 +12,59 @@ enum class FormatDirection
 
 enum class DesktopType
 {
-    WINDOW,
-    CONTAINER
+    WINDOW = 0,
+    CONTAINER = 1,
+    DESKTOP = 2
 };
 
-class Desktop {
+
+class Container;
+class WindowData;
+
+class Desktop
+{
 public:
-  void virtual printStructure() = 0;
-  DesktopType type_;
-
+    void virtual printStructure() = 0;
+    DesktopType type_;
+    RECT rect_;
+    FormatDirection formatDirection_ = FormatDirection::VERTICAL;
+    void toggleFormatDirection();
+    Container* parent_ = nullptr;
+    
 };
+
 
 class Container : public Desktop
 {
 public:
     static std::string lastId;
-    DesktopType type_ = DesktopType::CONTAINER;
     std::string id_;
     Container();
     ~Container();
-    RECT rect_;
-    std::vector<Desktop*> m_leafs_; 
-    Container* m_parent_ = nullptr;
+    std::vector<Desktop*> m_leafs_;
 
     void addLeaf(Desktop* leaf);
     void removeLeaf(Desktop* leaf);
+    std::vector<std::pair<WindowData*, size_t>> getAllWindows(int depth = 1);
+    void sizeUp(RECT rect);
     int getWindowCount();
     void printStructure();
+    void updateWindowPositions();
 };
 
 class WindowData : public Desktop
 {
 public:
     static size_t lastId;
-    DesktopType type_ = DesktopType::WINDOW;
     size_t id_;
     BOOL sizePinned_ = false;
     BOOL positionPinned_ = false;
     int zIndex_ = 0;
     HWND hwnd_;
     std::string title_;
-    RECT rect_;
     RECT previousRect_;
-    RECT rectBeforeSplit_;
-    FormatDirection formatDirection_ = FormatDirection::VERTICAL;
     struct WindowData* nextWindow_ = nullptr;
     struct WindowData* previousWindow_ = nullptr;
-    Container* parent_ = nullptr;
     void printStructure();
 };
 
@@ -77,5 +83,5 @@ bool operator==(const RECT& lhs, const RECT& rhs);
 BOOL CALLBACK saveWindow(HWND hwnd, LPARAM substring);
 int GetTaskBarHeight();
 bool doesWindowExist(HWND hwnd);
-void toggleFormatDirection(HWND hwnd);
 bool DidWindowPositionChange();
+void MoveWindowToRect(HWND hwnd, RECT rect);

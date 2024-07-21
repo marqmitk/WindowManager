@@ -32,7 +32,7 @@ void splitWindow(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
     int left;
     int right;
     int bottom;
-    WindowData newWindowData = windowMap[windowsOnMonitor[0]];
+    WindowData& nWindowData = windowMap[windowsOnMonitor[0]];
 
     if(windowsOnMonitor.size() == 1)
     {
@@ -40,75 +40,55 @@ void splitWindow(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
         left = currentMonitor.rcMonitor.left + borderGap;
         right = currentMonitor.rcMonitor.right - borderGap;
         bottom = currentMonitor.rcMonitor.bottom - borderGap - taskBarHeight;
-        MoveWindow(newWindowData.hwnd_, left, top, right - left, bottom - top, TRUE);
+        MoveWindow(nWindowData.hwnd_, left, top, right - left, bottom - top, TRUE);
         return;
     }
 
-    WindowData activeWindowData = windowMap[windowsOnMonitor[1]];
-    top = activeWindowData.rect_.top;
-    left = activeWindowData.rect_.left;
-    right = activeWindowData.rect_.right;
-    bottom = activeWindowData.rect_.bottom;
+    WindowData& aWindowData = windowMap[windowsOnMonitor[1]];
+
+    top = aWindowData.rect_.top;
+    left = aWindowData.rect_.left;
+    right = aWindowData.rect_.right;
+    bottom = aWindowData.rect_.bottom;
 
     int resolutionX = right - left;
     int resolutionY = bottom - top;
 
-    WindowData* aWindowData = &windowMap[activeWindowData.hwnd_];
-    WindowData* nWindowData = &windowMap[newWindowData.hwnd_];
-
-    aWindowData->rectBeforeSplit_ = activeWindowData.rect_;
-    nWindowData->rectBeforeSplit_ = activeWindowData.rect_;
-
-    aWindowData->nextWindow_ = nWindowData;
-    nWindowData->previousWindow_ = aWindowData;
-
     Container* newParent = new Container();
-
-    if(aWindowData->parent_)
+    if(aWindowData.parent_)
     {
-        aWindowData->parent_->removeLeaf(aWindowData);
-        aWindowData->parent_->addLeaf(newParent);
-        newParent->m_parent_ = aWindowData->parent_;
-        aWindowData->parent_ = newParent;
+        aWindowData.parent_->removeLeaf(&aWindowData);
+        aWindowData.parent_->addLeaf(newParent);
+        newParent->parent_ = aWindowData.parent_;
+        aWindowData.parent_ = newParent;
     }
     else
     {
         root = newParent;
     }
-    newParent->rect_ = activeWindowData.rect_;
-    newParent->addLeaf(nWindowData);
-    newParent->addLeaf(aWindowData);
-    aWindowData->parent_ = newParent;
-    nWindowData->parent_ = newParent;
+    newParent->rect_ = aWindowData.rect_;
+    newParent->addLeaf(&nWindowData);
+    newParent->addLeaf(&aWindowData);
+    aWindowData.parent_ = newParent;
+    nWindowData.parent_ = newParent;
 
-    if(activeWindowData.formatDirection_ == FormatDirection::VERTICAL)
+    if(aWindowData.formatDirection_ == FormatDirection::VERTICAL)
     {
-        MoveWindow(activeWindowData.hwnd_, left, top, resolutionX / 2, resolutionY, TRUE);
-        MoveWindow(newWindowData.hwnd_, left + resolutionX / 2, top, resolutionX / 2, resolutionY, TRUE);
+        MoveWindow(aWindowData.hwnd_, left, top, resolutionX / 2, resolutionY, TRUE);
+        MoveWindow(nWindowData.hwnd_, left + resolutionX / 2, top, resolutionX / 2, resolutionY, TRUE);
     }
-    else if(activeWindowData.formatDirection_ == FormatDirection::HORIZONTAL)
+    else if(aWindowData.formatDirection_ == FormatDirection::HORIZONTAL)
     {
-        MoveWindow(activeWindowData.hwnd_, left, top, resolutionX, resolutionY / 2, TRUE);
-        MoveWindow(newWindowData.hwnd_, left, top + resolutionY / 2, resolutionX, resolutionY / 2, TRUE);
+        MoveWindow(aWindowData.hwnd_, left, top, resolutionX, resolutionY / 2, TRUE);
+        MoveWindow(nWindowData.hwnd_, left, top + resolutionY / 2, resolutionX, resolutionY / 2, TRUE);
     }
 
-    toggleFormatDirection(activeWindowData.hwnd_);
-    nWindowData->formatDirection_ = aWindowData->formatDirection_;
+    aWindowData.toggleFormatDirection();
+    nWindowData.formatDirection_ = aWindowData.formatDirection_;
+    newParent->formatDirection_ = aWindowData.formatDirection_;
 
     std::cout << "Root is: " << root->id_ << std::endl;
     root->printStructure();
-    return;
-}
-
-void resetWindowPosition(HWND hwnd)
-{
-    WindowData windowData = windowMap[hwnd];
-    MoveWindow(hwnd,
-               windowData.rectBeforeSplit_.left,
-               windowData.rectBeforeSplit_.top,
-               windowData.rectBeforeSplit_.right - windowData.rectBeforeSplit_.left,
-               windowData.rectBeforeSplit_.bottom - windowData.rectBeforeSplit_.top,
-               TRUE);
     return;
 }
 
@@ -138,20 +118,9 @@ void updateWindows(bool windowCountChanged, bool windowPositionChanged)
 
     if(windowCountChanged)
         onWindowCountChanged(currentMonitor, windowsOnMonitor);
-    if(windowPositionChanged)
-        letWindowsFillSpace(currentMonitor.rcMonitor, windowsOnMonitor);
-    return;
-}
+    // if(windowPositionChanged)
 
-void letWindowsFillSpace(RECT space, std::vector<HWND> windows)
-{
-    // TODO
     return;
-}
-
-void MoveWindowToRect(HWND hwnd, RECT rect)
-{
-    MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, TRUE);
 }
 
 void resetWindows()
@@ -170,7 +139,10 @@ void resetWindows()
             Container* parent = closedWindow.parent_;
             windowMap.erase(window.first);
             if(parent == nullptr)
+            {
+                std::cout << "Parent is nullptr" << std::endl;
                 return;
+            }
 
             parent->removeLeaf(&closedWindow);
 
@@ -181,40 +153,72 @@ void resetWindows()
                 for(auto leaf : parent->m_leafs_)
                 {
                     WindowData* leafData = dynamic_cast<WindowData*>(leaf);
-                    parent->removeLeaf(leafData);
                     if(leafData->id_ == closedWindow.id_)
                         continue;
 
-                    std::cout << "Leaf: " << leafData->title_ << std::endl;
-
                     leafData->rect_ = parent->rect_;
                     MoveWindowToRect(leafData->hwnd_, parent->rect_);
-                    Container* grandParent = parent->m_parent_;
-                    if(grandParent == nullptr)
-                    {
-                        std::cout << "Grandparent is nullptr" << std::endl;
-                        leafData->parent_ = nullptr;
-                    }
-                    else
-                    {
-                        std::cout << "Grandparent is not nullptr" << std::endl;
-                        grandParent->addLeaf(leafData);
-                        std::cout << "Added leaf to grandparent" << std::endl;
-                        grandParent->removeLeaf(parent);
-                        std::cout << "Removed parent from grandparent" << std::endl;
-                        leafData->parent_ = grandParent;
-                        std::cout << "Set leaf parent to grandparent" << std::endl;
-                    }
-                    std::cout << "Finished leaf" << std::endl;
                 }
-                delete parent;
             }
-
-            // Case 2 The parent had one container and one leaf
+            // Case 2: The parent had a leaf and a container
             else if(parent->getWindowCount() == 1)
             {
                 std::cout << "Case 2" << std::endl;
+                RECT rectToFill = parent->rect_;
+                Container* otherContainer = nullptr;
+                for(auto leaf : parent->m_leafs_)
+                {
+                    if(leaf->type_ == DesktopType::CONTAINER)
+                    {
+                        otherContainer = dynamic_cast<Container*>(leaf);
+                        break;
+                    }
+                }
+
+                if(root == parent)
+                    root = otherContainer;
+
+                windowMap.erase(closedWindow.hwnd_);
+                otherContainer->sizeUp(rectToFill);
+                otherContainer->updateWindowPositions();
+                otherContainer->toggleFormatDirection();
+
             }
+            else
+            {
+                std::cout << "Case 3: Something went wrong" << std::endl;
+                std::cout << "We have " << parent->getWindowCount() << " windows in the parent" << std::endl;
+                exit(1);
+            }
+            Container* grandParent = parent->parent_;
+
+            auto leafsCopy = parent->m_leafs_;
+
+            for(auto leaf : leafsCopy)
+            {
+                Desktop* leafData = dynamic_cast<Desktop*>(leaf);
+                parent->removeLeaf(leafData);
+
+                if(leafData->type_ == DesktopType::WINDOW)
+                    if(dynamic_cast<WindowData*>(leafData)->id_ == closedWindow.id_)
+                        continue;
+
+                if(grandParent == nullptr)
+                {
+                    std::cout << "Grandparent is nullptr" << std::endl;
+                    leafData->parent_ = nullptr;
+                }
+                else
+                {
+                    std::cout << "Grandparent is not nullptr" << std::endl;
+                    grandParent->addLeaf(leafData);
+                    grandParent->removeLeaf(parent);
+                    leafData->parent_ = grandParent;
+                    leafData->parent_->toggleFormatDirection();
+                }
+                leafData->toggleFormatDirection();
+            }
+            delete parent;
         }
     }
 
