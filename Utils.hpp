@@ -15,6 +15,7 @@ extern HWND lastWindowGettingMoved;
 
 bool operator==(const RECT& lhs, const RECT& rhs);
 
+void drawBorders();
 void listenForKeybinds();
 void updateWindowContainers();
 BOOL CALLBACK saveWindow(HWND hwnd, LPARAM substring);

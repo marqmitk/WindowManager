@@ -29,6 +29,13 @@ bool operator==(const RECT& lhs, const RECT& rhs)
     return lhs.left == rhs.left && lhs.right == rhs.right && lhs.top == rhs.top && lhs.bottom == rhs.bottom;
 }
 
+void drawBorders()
+{
+    while(true)
+    {
+      // under construction
+    }
+}
 void listenForKeybinds()
 {
     if(GetAsyncKeyState(VK_F3) & 0x8000) // for debugging purposes

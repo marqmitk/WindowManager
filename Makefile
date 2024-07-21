@@ -1,6 +1,6 @@
 objects = Config.cpp Manager.cpp Utils.cpp Containers.cpp main.cpp
 cc = g++
-flags = -pthread -lgdi32
+flags = -lgdi32 
 output = a.exe
 
 all:

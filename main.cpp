@@ -1,7 +1,9 @@
 #include "Manager.hpp"
 #include <winuser.h>
+#include <thread>
 
 BOOL running = true;
+
 
 int main()
 {
@@ -9,8 +11,11 @@ int main()
 
     updateWindowContainers();
 
+    std::thread t1(drawBorders);
+
     while(running)
     {
+
         listenForKeybinds();
         updateWindowContainers();
 
@@ -30,5 +35,9 @@ int main()
 
         prevAmountOfWindows = amountOfWindows;
     }
-    return 0;
+    // kill thread
+    std::terminate();
+
+
+
 }
