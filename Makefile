@@ -1,20 +1,27 @@
+objects = Manager.cpp utils.cpp Containers.cpp main.cpp
+cc = g++
+flags = -pthread -lgdi32
+output = a.exe
+
 all:
 	@echo "Building and Running..."
-	g++ -o a.exe utils.cpp Manager.cpp main.cpp -pthread -lgdi32
+	$(cc) -o $(output) $(objects) $(flags)
+
 	./a.exe
 
 debug:
 	@echo "Building in Debug mode..."
-	g++ -o Manager.exe utils.cpp Manager.cpp main.cpp -pthread -lgdi32 -g
+	$(cc) -o $(output) $(objects) $(flags) -g
+	
 
 build: 
 	@echo "Building..."
-	g++ -o Manager.exe utils.cpp Manager.cpp main.cpp -pthread -lgdi32 
+	$(cc) -o $(output) $(objects) $(flags) -g
 
 run:
 	@echo "Running..."
-	./Manager.exe
+	./$(output)
 
 clean:
 	@echo "Cleaning..."
-	rm -f Manager.exe
+	rm -f $(output)

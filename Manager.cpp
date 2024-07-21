@@ -156,8 +156,7 @@ void resetWindows()
                     if(leafData->id_ == closedWindow.id_)
                         continue;
 
-                    leafData->rect_ = parent->rect_;
-                    MoveWindowToRect(leafData->hwnd_, parent->rect_);
+                    leafData->moveWindowToRect(parent->rect_);
                 }
             }
             // Case 2: The parent had a leaf and a container
@@ -182,7 +181,6 @@ void resetWindows()
                 otherContainer->sizeUp(rectToFill);
                 otherContainer->updateWindowPositions();
                 otherContainer->toggleFormatDirection();
-
             }
             else
             {
