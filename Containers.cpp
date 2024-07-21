@@ -42,7 +42,15 @@ void Container::addLeaf(Desktop* leaf)
 
 void Container::removeLeaf(Desktop* leaf)
 {
-    m_leafs_.erase(std::remove(m_leafs_.begin(), m_leafs_.end(), leaf), m_leafs_.end());
+    std::vector<Desktop*> newLeafs;
+    for(auto l : m_leafs_)
+    {
+        if(l != leaf)
+            newLeafs.push_back(l);
+        else
+            std::cout << "Removing leaf" << std::endl;
+    }
+    m_leafs_ = newLeafs;
 }
 
 std::vector<std::pair<WindowData*, size_t>> Container::getAllWindows(int depth)
@@ -146,30 +154,38 @@ int Container::getWindowCount()
     return count;
 }
 
-void Container::printStructure()
+void Container::printStructure(int depth)
 {
+    for(int i = 0; i < depth; i++)
+        std::cout << "  ";
     Container* parent = this->parent_;
     if(parent == nullptr)
-        std::cout << "--- " << this->id_ << " --- with no parent" << std::endl;
+        std::cout << "<" << this->id_ << " parent='None'>" << std::endl;
     else
     {
-        std::cout << "--- " << this->id_ << " --- with parent " << parent->id_ << std::endl;
+        std::cout << "<" << this->id_ << " parent='" << parent->id_ << "'>" << std::endl;
     }
     int i = 0;
     for(auto leaf : m_leafs_)
     {
-        std::cout << i++ << ": ";
         if(leaf == nullptr)
             std::cout << "nullptr" << std::endl;
         else
-            leaf->printStructure();
+            leaf->printStructure(depth + 1);
     }
-    std::cout << "--- " << this->id_ << " ---" << std::endl;
+    for(int i = 0; i < depth; i++)
+        std::cout << "  ";
+    std::cout << "</" << this->id_ << ">" << std::endl;
 }
 
-void WindowData::printStructure()
+void WindowData::printStructure(int depth)
 {
-    std::cout << this->id_ << " " << this->title_ << std::endl;
+    for(int i = 0; i < depth; i++)
+        std::cout << "  ";
+    if(this->parent_ == nullptr)
+        std::cout << "<window title='" << this->title_ << "' id='" << this->id_ << "' parent='None'/>" << std::endl;
+    else
+        std::cout << "<window title='" << this->title_ << "' id='" << this->id_ << "' parent='" << this->parent_->id_ << "'/>" << std::endl;
 }
 
 void WindowData::moveWindowToRect(RECT rect)

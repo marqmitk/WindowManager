@@ -125,31 +125,31 @@ void updateWindows(bool windowCountChanged, bool windowPositionChanged)
 
 void resetWindows()
 {
-    std::cout << "Resetting windows" << std::endl;
-    std::cout << "Root is: " << root->id_ << std::endl;
+    
+    std::cout << "--- Resetting windows --- " << std::endl;
+
     if(root)
         root->printStructure();
+
     std::map<HWND, WindowData> windowMapCopy(windowMap);
     for(auto window : windowMapCopy)
     {
         if(!doesWindowExist(window.first)) // then window.first got closed
         {
-            std::cout << "Window closed" << std::endl;
             WindowData closedWindow = window.second;
             Container* parent = closedWindow.parent_;
             windowMap.erase(window.first);
             if(parent == nullptr)
-            {
-                std::cout << "Parent is nullptr" << std::endl;
                 return;
-            }
 
+            std::cout << "Children: " << parent->m_leafs_.size() << std::endl;
             parent->removeLeaf(&closedWindow);
+            std::cout << "Children: " << parent->m_leafs_.size() << std::endl;
 
             // Case 1: The parent only had leafs
             if(parent->getWindowCount() == 2)
             {
-                std::cout << "Case 1" << std::endl;
+                std::cout << "--- Case 1 ---" << std::endl;
                 for(auto leaf : parent->m_leafs_)
                 {
                     WindowData* leafData = dynamic_cast<WindowData*>(leaf);
@@ -158,11 +158,12 @@ void resetWindows()
 
                     leafData->moveWindowToRect(parent->rect_);
                 }
+                std::cout << "--- Case 1 ---" << std::endl;
             }
             // Case 2: The parent had a leaf and a container
             else if(parent->getWindowCount() == 1)
             {
-                std::cout << "Case 2" << std::endl;
+                std::cout << "--- Case 2 ---" << std::endl;
                 RECT rectToFill = parent->rect_;
                 Container* otherContainer = nullptr;
                 for(auto leaf : parent->m_leafs_)
@@ -181,6 +182,7 @@ void resetWindows()
                 otherContainer->sizeUp(rectToFill);
                 otherContainer->updateWindowPositions();
                 otherContainer->toggleFormatDirection();
+                std::cout << "--- Case 2 ---" << std::endl;
             }
             else
             {
@@ -188,14 +190,13 @@ void resetWindows()
                 std::cout << "We have " << parent->getWindowCount() << " windows in the parent" << std::endl;
                 exit(1);
             }
+
             Container* grandParent = parent->parent_;
 
             auto leafsCopy = parent->m_leafs_;
-
             for(auto leaf : leafsCopy)
             {
                 Desktop* leafData = dynamic_cast<Desktop*>(leaf);
-                parent->removeLeaf(leafData);
 
                 if(leafData->type_ == DesktopType::WINDOW)
                     if(dynamic_cast<WindowData*>(leafData)->id_ == closedWindow.id_)
@@ -205,6 +206,7 @@ void resetWindows()
                 {
                     std::cout << "Grandparent is nullptr" << std::endl;
                     leafData->parent_ = nullptr;
+                    root = nullptr;
                 }
                 else
                 {
@@ -220,7 +222,9 @@ void resetWindows()
         }
     }
 
-    std::cout << "Root is: " << root->id_ << std::endl;
     if(root)
         root->printStructure();
+
+    std::cout << "--- Done resetting windows --- " << std::endl;
+    return;
 }
