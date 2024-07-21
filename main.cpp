@@ -16,10 +16,10 @@ int main()
 
     while(running)
     {
-        if(GetAsyncKeyState(VK_F2) & 0x8000)
+        if(GetAsyncKeyState(VK_F3) & 0x8000) // for debugging purposes
             exit(0);
 
-        if(GetAsyncKeyState(VK_F3) & 0x8000) // for debugging purposes
+        if(GetAsyncKeyState(VK_F2) & 0x8000) // for debugging purposes
             system("start cmd");
 
         windows.clear();

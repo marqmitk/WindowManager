@@ -1,4 +1,4 @@
-objects = Manager.cpp utils.cpp Containers.cpp main.cpp
+objects = Manager.cpp Utils.cpp Containers.cpp main.cpp
 cc = g++
 flags = -pthread -lgdi32
 output = a.exe
@@ -9,8 +9,8 @@ all:
 
 	./a.exe
 
-debug:
-	@echo "Building in Debug mode..."
+debug:
+	@echo "Building in Debug mode..."
 	$(cc) -o $(output) $(objects) $(flags) -g
 	
 

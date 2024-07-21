@@ -47,8 +47,6 @@ void Container::removeLeaf(Desktop* leaf)
     {
         if(l != leaf)
             newLeafs.push_back(l);
-        else
-            std::cout << "Removing leaf" << std::endl;
     }
     m_leafs_ = newLeafs;
 }
