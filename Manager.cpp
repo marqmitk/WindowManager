@@ -40,7 +40,8 @@ void splitWindow(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
         left = currentMonitor.rcMonitor.left + borderGap;
         right = currentMonitor.rcMonitor.right - borderGap;
         bottom = currentMonitor.rcMonitor.bottom - borderGap - taskBarHeight;
-        MoveWindow(nWindowData.hwnd_, left, top, right - left, bottom - top, TRUE);
+        RECT rect = {left, top, right - left, bottom - top};
+        nWindowData.moveWindowToRect(rect);
         return;
     }
 
@@ -72,16 +73,22 @@ void splitWindow(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
     aWindowData.parent_ = newParent;
     nWindowData.parent_ = newParent;
 
+    RECT aRect;
+    RECT nRect;
+
     if(aWindowData.formatDirection_ == FormatDirection::VERTICAL)
     {
-        MoveWindow(aWindowData.hwnd_, left, top, resolutionX / 2, resolutionY, TRUE);
-        MoveWindow(nWindowData.hwnd_, left + resolutionX / 2, top, resolutionX / 2, resolutionY, TRUE);
+        aRect = {left, top, left + resolutionX / 2, top + resolutionY};
+        nRect = {left + resolutionX / 2, top, right, bottom};
     }
     else if(aWindowData.formatDirection_ == FormatDirection::HORIZONTAL)
     {
-        MoveWindow(aWindowData.hwnd_, left, top, resolutionX, resolutionY / 2, TRUE);
-        MoveWindow(nWindowData.hwnd_, left, top + resolutionY / 2, resolutionX, resolutionY / 2, TRUE);
+        aRect = {left, top, right, top + resolutionY / 2};
+        nRect = {left, top + resolutionY / 2, right, bottom};
     }
+
+    aWindowData.moveWindowToRect(aRect);
+    nWindowData.moveWindowToRect(nRect);
 
     aWindowData.toggleFormatDirection();
     nWindowData.formatDirection_ = aWindowData.formatDirection_;
