@@ -1,4 +1,5 @@
 #include "Manager.hpp"
+#include "Utils.hpp"
 #include <windef.h>
 
 Container* root;
@@ -90,8 +91,8 @@ void splitWindow(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonitor)
         nRect = {left, top + resolutionY / 2, right, bottom};
     }
 
-    aWindowData.moveWindowToRect(aRect, gapSize);
-    nWindowData.moveWindowToRect(nRect, gapSize);
+    aWindowData.moveWindowToRect(aRect);
+    nWindowData.moveWindowToRect(nRect);
 
     aWindowData.toggleFormatDirection();
     nWindowData.formatDirection_ = aWindowData.formatDirection_;
@@ -120,9 +121,10 @@ void onWindowMoved(MONITORINFO currentMonitor, std::vector<HWND> windowsOnMonito
     WindowData& movedWindowData = windowMap[lastWindowGettingMoved];
     WindowData& overlappedWindowData = getOverlappedWindowData(movedWindowData, windowsOnMonitor);
     movedWindowData.rect_ = movedWindowData.previousRect_;
-    if(overlappedWindowData.hwnd_ == nullptr) {
-      movedWindowData.moveWindowToRect(movedWindowData.rect_, gapSize);
-      return;
+    if(overlappedWindowData.hwnd_ == nullptr)
+    {
+        movedWindowData.moveWindowToRect(movedWindowData.rect_);
+        return;
     }
 
     overlappedWindowData.rect_ = overlappedWindowData.getOriginalRect();
@@ -180,9 +182,233 @@ WindowData& getOverlappedWindowData(WindowData& movedWindowData, std::vector<HWN
     return windowMap[biggestOverlapWindow];
 }
 
+Direction isGettingResized(HWND windowGettingMoved)
+// -1 = not getting resized, 0 = topNeg, 1 = topPos, 2 = leftNeg, 3 = leftPos, 4 = rightNeg, 5 = rightPos, 6 = bottomNeg, 7 = bottomPos
+{
+    if(windowGettingMoved == nullptr)
+        return 0;
+
+    RECT currentRect;
+    GetWindowRect(windowGettingMoved, &currentRect);
+    windowMap[windowGettingMoved].rect_ = currentRect;
+    bool topNeg = currentRect.top < windowMap[windowGettingMoved].previousRect_.top;
+    bool topPos = currentRect.top > windowMap[windowGettingMoved].previousRect_.top;
+    bool leftNeg = currentRect.left < windowMap[windowGettingMoved].previousRect_.left;
+    bool leftPos = currentRect.left > windowMap[windowGettingMoved].previousRect_.left;
+    bool rightNeg = currentRect.right < windowMap[windowGettingMoved].previousRect_.right;
+    bool rightPos = currentRect.right > windowMap[windowGettingMoved].previousRect_.right;
+    bool bottomNeg = currentRect.bottom < windowMap[windowGettingMoved].previousRect_.bottom;
+    bool bottomPos = currentRect.bottom > windowMap[windowGettingMoved].previousRect_.bottom;
+
+    if(!topNeg && !topPos && !leftNeg && !leftPos && !rightNeg && !rightPos && !bottomNeg && !bottomPos)
+        return -1;
+
+    // return 0 if we are moving
+    // we are moving if the opposite side is also moving
+    if(topNeg && bottomPos)
+        return -1;
+    if(topPos && bottomNeg)
+        return -1;
+    if(leftNeg && rightPos)
+        return -1;
+    if(leftPos && rightNeg)
+        return -1;
+    if(topNeg && bottomNeg)
+        return -1;
+    if(topPos && bottomPos)
+        return -1;
+    if(leftNeg && rightNeg)
+        return -1;
+    if(leftPos && rightPos)
+        return -1;
+
+    std::cout << "Getting resized: " << topNeg << topPos << leftNeg << leftPos << rightNeg << rightPos << bottomNeg << bottomPos << std::endl;
+
+    if(topNeg)
+        return TOP_NEGATIVE;
+    if(topPos)
+        return TOP;
+    if(leftNeg)
+        return LEFT_NEGATIVE;
+    if(leftPos)
+        return LEFT;
+    if(rightNeg)
+        return RIGHT_NEGATIVE;
+    if(rightPos)
+        return RIGHT;
+    if(bottomNeg)
+        return BOTTOM_NEGATIVE;
+    if(bottomPos)
+        return BOTTOM;
+
+    return -1;
+}
+
+void handleWindowMovement()
+{
+    HWND windowGettingMoved = getWindowGettingMoved();
+
+    if(windowGettingMoved != lastWindowGettingMoved && lastWindowGettingMoved != nullptr) // We moved a window
+    {
+        if(isGettingResized(windowGettingMoved) == -1)
+            updateWindows();
+
+        lastWindowGettingMoved = windowGettingMoved;
+    }
+    else if(windowGettingMoved != nullptr && lastWindowGettingMoved == nullptr) // First time we move a window
+    {
+        lastWindowGettingMoved = windowGettingMoved;
+        windowMap[lastWindowGettingMoved].previousRect_ = windowMap[lastWindowGettingMoved].getOriginalRect();
+    }
+}
+
+void updateNeighbours()
+{
+    for(auto window : windows)
+    {
+        WindowData* windowData = &windowMap[window];
+        windowData->neighbours_->clearNeighbours();
+        windowData->fillNeighbours(gapSize);
+    }
+
+    for(auto container : containers)
+    {
+        container->neighbours_->clearNeighbours();
+        container->fillNeighbours(gapSize);
+    }
+}
+
+long calculateOffset(RECT rect1, RECT rect2, Direction direction)
+{
+    switch(direction)
+    {
+    case LEFT:
+        return rect2.left - rect1.left;
+    case TOP:
+        return rect2.top - rect1.top;
+    case RIGHT:
+        return rect2.right - rect1.right;
+    case BOTTOM:
+        return rect2.bottom - rect1.bottom;
+    }
+    return 0;
+}
+
+void handleWindowResize()
+{
+    HWND windowGettingMoved = getWindowGettingMoved();
+    if(windowGettingMoved == nullptr) // handle resetting invalid resizes
+    {
+        if(lastWindowGettingResized != nullptr)
+        {
+            WindowData* windowGettingResizedData = &windowMap[lastWindowGettingResized];
+            std::vector<WindowData*> adjecentWindows = windowGettingResizedData->neighbours_->getNeighbours(windowGettingResizedData->lastResizeDirection_);
+            lastWindowGettingResized = nullptr;
+            if(adjecentWindows.size() == 0)
+            {
+                windowGettingResizedData->moveWindowToRect(windowGettingResizedData->originalRect_);
+                windowGettingResizedData->previousRect_ = windowGettingResizedData->rect_;
+                return;
+            }
+            windowMap[lastWindowGettingMoved].previousRect_ = windowMap[lastWindowGettingMoved].rect_;
+        }
+        return;
+    }
+
+    WindowData* windowGettingMovedData = &windowMap[windowGettingMoved];
+
+    Direction resizeDirection = isGettingResized(windowGettingMoved); // -1 = not getting resized
+    if(resizeDirection == -1)
+        return;
+
+    lastWindowGettingResized = windowGettingMoved;
+    resizeDirection = NORMALIZE_DIRECTION(resizeDirection);
+    windowGettingMovedData->lastResizeDirection_ = resizeDirection;
+
+    long offset = calculateOffset(windowGettingMovedData->rect_, windowGettingMovedData->previousRect_, resizeDirection);
+    RECT rectAfterMove = windowGettingMovedData->rect_;
+    std::cout << "Offset: " << offset << " Direction: " << resizeDirection << std::endl;
+
+    Neighbours* neighbours = windowGettingMovedData->neighbours_;
+
+    std::vector<WindowData*> adjecentWindows = neighbours->getNeighbours(resizeDirection);
+
+    for(WindowData* neighbourWindow : adjecentWindows)
+        neighbourWindow->pushResizeWindow(resizeDirection, offset);
+
+    std::vector<Container*> adjecentContainers = neighbours->getContainerNeighbours(resizeDirection);
+    for(auto container : adjecentContainers)
+        container->pushResize(resizeDirection, offset);
+
+    // get all siblings
+    std::vector<WindowData*> siblings = windowGettingMovedData->getAllWindowSiblings();
+
+    bool resizedSiblings = false;
+    for(auto sibling : siblings)
+    {
+        bool found = false;
+        for(WindowData* adWindow : adjecentWindows)
+        {
+            std::cout << "Sibling: " << sibling->id_ << " Adjecent window: " << adWindow->id_ << std::endl;
+            if(sibling == adWindow)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        std::cout << "Found: " << found << std::endl;
+
+        if(found)
+            continue;
+
+        std::vector<WindowData*> nonMatchingNeighbours = {};
+        std::vector<Container*> nonMatchingContainers = {};
+        std::vector<Container*> matchingContainers = {};
+        std::vector<WindowData*> siblingAdjecentWindows = sibling->neighbours_->getNeighbours(resizeDirection);
+        std::vector<Container*> siblingAdjecentContainers = sibling->neighbours_->getContainerNeighbours(resizeDirection);
+
+        for(auto neighbour : siblingAdjecentWindows)
+            for(auto neighbourOfWindowGettingMoved : adjecentWindows)
+                if(neighbour->hwnd_ != neighbourOfWindowGettingMoved->hwnd_)
+                    nonMatchingNeighbours.push_back(neighbour);
+
+        for(auto container : siblingAdjecentContainers)
+            for(auto containerOfWindowGettingMoved : adjecentContainers)
+                if(container->id_ != containerOfWindowGettingMoved->id_)
+                    nonMatchingContainers.push_back(container);
+
+        for(auto notMatching : nonMatchingNeighbours)
+            notMatching->pushResizeWindow(resizeDirection, offset);
+
+        for(auto notMatching : nonMatchingContainers)
+            notMatching->pushResize(offset, resizeDirection);
+
+        sibling->resizeWindow(resizeDirection, offset);
+        windowMap[sibling->hwnd_].previousRect_ = windowMap[sibling->hwnd_].rect_;
+        resizedSiblings = true;
+    }
+
+    std::vector<Container*> parentContainers = windowGettingMovedData->getAllParentContainers();
+    std::cout << "Parent containers: " << parentContainers.size() << std::endl;
+    if(resizedSiblings)
+    {
+        for(auto container : parentContainers)
+        {
+            if(container == root)
+                continue;
+
+            container->resize(resizeDirection, offset);
+        }
+    }
+
+    windowMap[windowGettingMoved].previousRect_ = rectAfterMove;
+    windowMap[windowGettingMoved].originalRect_ = rectAfterMove;
+    return;
+}
+
 void updateWindows(bool windowCountChanged)
 {
-    // Get current monitor
     MONITORINFO currentMonitor;
     HWND window = windows.front();
     currentMonitor.cbSize = sizeof(MONITORINFO);
@@ -198,6 +424,28 @@ void updateWindows(bool windowCountChanged)
     else
         onWindowMoved(currentMonitor, windowsOnMonitor);
 
+    std::cout << "Updating neighbours" << std::endl;
+    updateNeighbours();
+    std::cout << "======================" << std::endl;
+    for(auto window : windows)
+    {
+        std::cout << "Window id: " << windowMap[window].id_ << " has neighbours: " << windowMap[window].neighbours_->left_.size() << " left, " << windowMap[window].neighbours_->right_.size()
+                  << " right, " << windowMap[window].neighbours_->top_.size() << " top, " << windowMap[window].neighbours_->bottom_.size() << " bottom" << std::endl;
+        std::cout << "Left: " << std::endl;
+        for(auto neighbour : windowMap[window].neighbours_->left_)
+            neighbour->printStructure(1);
+        std::cout << "Right: " << std::endl;
+        for(auto neighbour : windowMap[window].neighbours_->right_)
+            neighbour->printStructure(1);
+        std::cout << "Top: " << std::endl;
+        for(auto neighbour : windowMap[window].neighbours_->top_)
+            neighbour->printStructure(1);
+        std::cout << "Bottom: " << std::endl;
+        for(auto neighbour : windowMap[window].neighbours_->bottom_)
+            neighbour->printStructure(1);
+
+        std::cout << "---------------------------------" << std::endl;
+    }
     return;
 }
 

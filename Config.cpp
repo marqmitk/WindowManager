@@ -2,5 +2,3 @@
 
 int gapSize = 20;
 
-
-

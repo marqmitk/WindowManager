@@ -1,15 +1,13 @@
 #include "Manager.hpp"
-#include <winuser.h>
 #include <thread>
+#include <winuser.h>
 
 BOOL running = true;
 
-
 int main()
 {
-    std::cout << "Ready" << std::endl;
-
     updateWindowContainers();
+    std::cout << "Ready" << std::endl;
 
     std::thread t1(drawBorders);
 
@@ -22,22 +20,11 @@ int main()
         if(prevAmountOfWindows != amountOfWindows)
             updateWindows(true);
 
-        HWND windowGettingMoved = getWindowGettingMoved();
-        if(windowGettingMoved != lastWindowGettingMoved && lastWindowGettingMoved != nullptr)
-        {
-            updateWindows();
-            lastWindowGettingMoved = windowGettingMoved;
-        } else if(windowGettingMoved != nullptr && lastWindowGettingMoved == nullptr)
-        {
-            lastWindowGettingMoved = windowGettingMoved;
-            windowMap[lastWindowGettingMoved].previousRect_ = windowMap[lastWindowGettingMoved].getOriginalRect();
-        }
+        handleWindowMovement();
+        handleWindowResize();
 
         prevAmountOfWindows = amountOfWindows;
     }
     // kill thread
     std::terminate();
-
-
-
 }
