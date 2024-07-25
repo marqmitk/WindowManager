@@ -391,12 +391,6 @@ void Desktop::fillNeighbours(int gap)
                     if(dynamic_cast<Container*>(this)->hasChild(&windowMap[hwnd]))
                         continue;
 
-                if(type_ == DesktopType::WINDOW)
-                {
-                    if(dynamic_cast<WindowData*>(this)->id_ == 2 && windowMap[hwnd].id_ == 5)
-                        std::cout << "Checking if window with id " << windowMap[hwnd].id_ << " is a neighbour of " << dynamic_cast<WindowData*>(this)->id_ << std::endl;
-                }
-
                 WindowData* windowData = &(windowMap[hwnd]);
                 RECT windowRect = windowData->rect_;
                 RECT intersection;
@@ -405,14 +399,6 @@ void Desktop::fillNeighbours(int gap)
                     neighbours_->addNeighbour(windowData, direction);
                     found = true;
                 }
-                else if(type_ == DesktopType::WINDOW)
-                    if(dynamic_cast<WindowData*>(this)->id_ == 2 && windowMap[hwnd].id_ == 5)
-                    {
-                        std::cout << "Rect of window with id " << windowMap[hwnd].id_ << " is " << windowRect.left << " " << windowRect.top << " " << windowRect.right << " " << windowRect.bottom
-                                  << std::endl;
-                        std::cout << "Rect of window with id " << dynamic_cast<WindowData*>(this)->id_ << " is " << raytraceRect.left << " " << raytraceRect.top << " " << raytraceRect.right << " "
-                                  << raytraceRect.bottom << std::endl;
-                    }
             }
             for(auto container : containers)
             {
@@ -454,6 +440,39 @@ void Desktop::fillNeighbours(int gap)
             searchAmount++;
         }
     }
+}
+
+bool WindowData::isWindowInDirection(WindowData* two, Direction direction)
+{
+    std::cout << "Checking if window << " << two->id_ << " is in direction " << direction << " of window " << this->id_ << std::endl;
+    RECT twoRect = two->rect_;
+    RECT oneRect = this->rect_;
+    if(direction == 3)
+    {
+        std::cout << "One rect: " << oneRect.left << " " << oneRect.top << " " << oneRect.right << " " << oneRect.bottom << std::endl;
+        std::cout << "Two rect: " << twoRect.left << " " << twoRect.top << " " << twoRect.right << " " << twoRect.bottom << std::endl;
+    }
+
+    switch(direction)
+    {
+    case TOP:
+        if(twoRect.bottom <= oneRect.top && twoRect.top < oneRect.top)
+            return true;
+        break;
+    case BOTTOM:
+        if(twoRect.top <= oneRect.bottom && twoRect.bottom > oneRect.bottom)
+            return true;
+        break;
+    case LEFT:
+        if(twoRect.right <= oneRect.left && twoRect.left < oneRect.left)
+            return true;
+        break;
+    case RIGHT:
+        if(twoRect.left <= oneRect.right && twoRect.right > oneRect.right)
+            return true;
+        break;
+    }
+    return false;
 }
 
 void WindowData::moveWindowToRect(RECT rect, int gap)

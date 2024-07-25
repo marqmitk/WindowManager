@@ -1,4 +1,5 @@
 #include "Manager.hpp"
+#include "Containers.hpp"
 #include "Utils.hpp"
 #include <windef.h>
 
@@ -145,8 +146,8 @@ void swapWindows(WindowData& window1, WindowData& window2)
     Container* window1Parent = window1.parent_;
     Container* window2Parent = window2.parent_;
 
-    window1.moveWindowToRect(window2Rect, gapSize);
-    window2.moveWindowToRect(window1Rect, gapSize);
+    window1.moveWindowToRect(window2Rect);
+    window2.moveWindowToRect(window1Rect);
 
     window1.parent_ = window2Parent;
     window2.parent_ = window1Parent;
@@ -186,7 +187,7 @@ Direction isGettingResized(HWND windowGettingMoved)
 // -1 = not getting resized, 0 = topNeg, 1 = topPos, 2 = leftNeg, 3 = leftPos, 4 = rightNeg, 5 = rightPos, 6 = bottomNeg, 7 = bottomPos
 {
     if(windowGettingMoved == nullptr)
-        return 0;
+        return -1;
 
     RECT currentRect;
     GetWindowRect(windowGettingMoved, &currentRect);
@@ -252,6 +253,8 @@ void handleWindowMovement()
     {
         if(isGettingResized(windowGettingMoved) == -1)
             updateWindows();
+        else
+            std::cout << "Wrong alarm" << std::endl;
 
         lastWindowGettingMoved = windowGettingMoved;
     }
@@ -357,8 +360,6 @@ void handleWindowResize()
             }
         }
 
-        std::cout << "Found: " << found << std::endl;
-
         if(found)
             continue;
 
@@ -368,23 +369,37 @@ void handleWindowResize()
         std::vector<WindowData*> siblingAdjecentWindows = sibling->neighbours_->getNeighbours(resizeDirection);
         std::vector<Container*> siblingAdjecentContainers = sibling->neighbours_->getContainerNeighbours(resizeDirection);
 
-        for(auto neighbour : siblingAdjecentWindows)
-            for(auto neighbourOfWindowGettingMoved : adjecentWindows)
-                if(neighbour->hwnd_ != neighbourOfWindowGettingMoved->hwnd_)
-                    nonMatchingNeighbours.push_back(neighbour);
+        // if the siling is to the 90 degree direction of the resize direction, we should not use it to resize others
+        bool is90Degree = false;
+        if(windowGettingMovedData->isWindowInDirection(sibling, NINTY_DEGREES_CW(resizeDirection)))
+            is90Degree = true;
+        else if(windowGettingMovedData->isWindowInDirection(sibling, NINTY_DEGREES_CCW(resizeDirection)))
+            is90Degree = true;
 
-        for(auto container : siblingAdjecentContainers)
-            for(auto containerOfWindowGettingMoved : adjecentContainers)
-                if(container->id_ != containerOfWindowGettingMoved->id_)
-                    nonMatchingContainers.push_back(container);
+        if(is90Degree)
+        {
+            std::cout << "90 degree" << std::endl;
+            for(auto neighbour : siblingAdjecentWindows)
+                for(auto neighbourOfWindowGettingMoved : adjecentWindows)
+                    if(neighbour->hwnd_ != neighbourOfWindowGettingMoved->hwnd_)
+                        nonMatchingNeighbours.push_back(neighbour);
 
-        for(auto notMatching : nonMatchingNeighbours)
-            notMatching->pushResizeWindow(resizeDirection, offset);
+            for(auto container : siblingAdjecentContainers)
+                for(auto containerOfWindowGettingMoved : adjecentContainers)
+                    if(container->id_ != containerOfWindowGettingMoved->id_)
+                        nonMatchingContainers.push_back(container);
 
-        for(auto notMatching : nonMatchingContainers)
-            notMatching->pushResize(offset, resizeDirection);
+            for(auto notMatching : nonMatchingNeighbours)
+            {
+                notMatching->pushResizeWindow(resizeDirection, offset);
+            }
 
-        sibling->resizeWindow(resizeDirection, offset);
+            for(auto notMatching : nonMatchingContainers)
+            {
+                notMatching->pushResize(offset, resizeDirection);
+            }
+            sibling->resizeWindow(resizeDirection, offset);
+        }
         windowMap[sibling->hwnd_].previousRect_ = windowMap[sibling->hwnd_].rect_;
         resizedSiblings = true;
     }
@@ -409,6 +424,11 @@ void handleWindowResize()
 
 void updateWindows(bool windowCountChanged)
 {
+    if(windowCountChanged)
+        std::cout << "Window count changed" << std::endl;
+    else
+        std::cout << "Window moved" << std::endl;
+
     MONITORINFO currentMonitor;
     HWND window = windows.front();
     currentMonitor.cbSize = sizeof(MONITORINFO);
@@ -424,28 +444,7 @@ void updateWindows(bool windowCountChanged)
     else
         onWindowMoved(currentMonitor, windowsOnMonitor);
 
-    std::cout << "Updating neighbours" << std::endl;
     updateNeighbours();
-    std::cout << "======================" << std::endl;
-    for(auto window : windows)
-    {
-        std::cout << "Window id: " << windowMap[window].id_ << " has neighbours: " << windowMap[window].neighbours_->left_.size() << " left, " << windowMap[window].neighbours_->right_.size()
-                  << " right, " << windowMap[window].neighbours_->top_.size() << " top, " << windowMap[window].neighbours_->bottom_.size() << " bottom" << std::endl;
-        std::cout << "Left: " << std::endl;
-        for(auto neighbour : windowMap[window].neighbours_->left_)
-            neighbour->printStructure(1);
-        std::cout << "Right: " << std::endl;
-        for(auto neighbour : windowMap[window].neighbours_->right_)
-            neighbour->printStructure(1);
-        std::cout << "Top: " << std::endl;
-        for(auto neighbour : windowMap[window].neighbours_->top_)
-            neighbour->printStructure(1);
-        std::cout << "Bottom: " << std::endl;
-        for(auto neighbour : windowMap[window].neighbours_->bottom_)
-            neighbour->printStructure(1);
-
-        std::cout << "---------------------------------" << std::endl;
-    }
     return;
 }
 
@@ -476,7 +475,7 @@ void resetWindows()
             {
                 std::cout << "--- Case 1 ---" << std::endl;
                 WindowData* leafData = dynamic_cast<WindowData*>(otherLeaf);
-                leafData->moveWindowToRect(parent->rect_, gapSize);
+                leafData->moveWindowToRect(parent->rect_);
                 std::cout << "--- Case 1 ---" << std::endl;
             }
             // Case 2: The parent had a leaf and a container

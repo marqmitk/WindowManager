@@ -27,6 +27,8 @@ typedef int Direction; // not sure if thats smarter than a enum
 #define BOTTOM_NEGATIVE 7
 #define NORMALIZE_DIRECTION(direction) (direction % 4)
 #define OPPOSITE_DIRECTION(direction) ((direction + 2) % 4)
+#define NINTY_DEGREES_CW(direction) ((direction + 1) % 4)
+#define NINTY_DEGREES_CCW(direction) ((direction + 3) % 4)
 
 enum class FormatDirection
 {
@@ -106,6 +108,7 @@ public:
     void printStructure(int depth = 0);
     void moveWindowToRect(RECT rect, int gap = 0);
     void resizeWindow(Direction direction, long offset);
+    bool isWindowInDirection(WindowData* window, Direction direction);
     void pushResizeWindow(Direction direction, long offset); // pushing with negative offset is pulling
 };
 

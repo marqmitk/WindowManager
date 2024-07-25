@@ -70,9 +70,14 @@ void identifyWindows()
     HWND hdc = GetDesktopWindow();
     HDC hdcMem = GetDCEx(hdc, NULL, DCX_WINDOW | DCX_CACHE | DCX_LOCKWINDOWUPDATE);
     HPEN pen = CreatePen(PS_SOLID | PS_INSIDEFRAME, 24, RGB(0, 255, 0));
-    HBRUSH brush = CreateSolidBrush(RGB(0, 255, 0));
     while(drawTime > 0)
     {
+        if(!printed)
+        {
+            std::cout << YELLOW << "=================================" << std::endl;
+            std::cout << BLUE << "Windows: " << amountOfWindows << std::endl << YELLOW;
+        }
+
         for(auto hwnd : windows)
         {
             std::pair<int, int> position = {windowMap[hwnd].rect_.left + windowMap[hwnd].getWidth() / 2, windowMap[hwnd].rect_.top + windowMap[hwnd].getHeight() / 2};
@@ -89,8 +94,39 @@ void identifyWindows()
 
             RECT rect = windowMap[hwnd].rect_;
             SelectObject(hdcMem, pen);
+            HBRUSH brush = CreateSolidBrush(RGB(255, 0, 0));
             FrameRect(hdcMem, &rect, brush);
+            SelectObject(hdcMem, brush);
+            DeleteObject(brush);
+            if(!printed)
+                std::cout << "Window: " << windowMap[hwnd].title_ << " ID: " << windowMap[hwnd].id_ << " hwnd: " << hwnd << std::endl;
         }
+
+        if(!printed)
+        {
+            std::cout << "+--------------------------------+" << std::endl << RESET;
+            std::cout << RED << "Neighbours: " << std::endl << YELLOW;
+            for(auto hwnd : windows)
+            {
+                std::cout << "Window: " << windowMap[hwnd].id_ << std::endl;
+                std::cout << BLUE << "Top: " << std::endl << YELLOW;
+                for(auto neighbour : windowMap[hwnd].neighbours_->top_)
+                    std::cout << "    " << neighbour->id_ << std::endl;
+                std::cout << BLUE << "Bottom: " << std::endl << YELLOW;
+                for(auto neighbour : windowMap[hwnd].neighbours_->bottom_)
+                    std::cout << "    " << neighbour->id_ << std::endl;
+                std::cout << BLUE << "Left: " << std::endl << YELLOW;
+                for(auto neighbour : windowMap[hwnd].neighbours_->left_)
+                    std::cout << "    " << neighbour->id_ << std::endl;
+                std::cout << BLUE << "Right: " << std::endl << YELLOW;
+                for(auto neighbour : windowMap[hwnd].neighbours_->right_)
+                    std::cout << "    " << neighbour->id_ << std::endl;
+            }
+        }
+
+        if(!printed)
+            std::cout << "---------------------------------" << std::endl << BLUE << "Containers: " << containers.size() << std::endl << YELLOW;
+
         for(auto container : containers)
         {
             std::pair<int, int> position = {container->rect_.left + container->getWidth() / 2, container->rect_.top + container->getHeight() / 2};
@@ -110,17 +146,42 @@ void identifyWindows()
             // draw border
             RECT rect = container->rect_;
             SelectObject(hdcMem, pen);
+            HBRUSH brush = CreateSolidBrush(RGB(0, 255, 0));
             FrameRect(hdcMem, &rect, brush);
+            SelectObject(hdcMem, brush);
+            DeleteObject(brush);
             if(!printed)
-                std::cout << "Container: " << id << " address: " << container << std::endl;
+                std::cout << "Container: " << container->id_ << std::endl;
         }
+        if(!printed)
+        {
+            std::cout << RED << "Neighbours: " << std::endl << YELLOW;
+            for(auto container : containers)
+            {
+                std::cout << "Container: " << container->id_ << std::endl;
+                std::cout << BLUE << "Top: " << std::endl << YELLOW;
+                for(auto neighbour : container->neighbours_->top_)
+                    std::cout << "    " << neighbour->id_ << std::endl;
+                std::cout << BLUE << "Bottom: " << std::endl << YELLOW;
+                for(auto neighbour : container->neighbours_->bottom_)
+                    std::cout << "    " << neighbour->id_ << std::endl;
+                std::cout << BLUE << "Left: " << std::endl << YELLOW;
+                for(auto neighbour : container->neighbours_->left_)
+                    std::cout << "    " << neighbour->id_ << std::endl;
+                std::cout << BLUE << "Right: " << std::endl << YELLOW;
+                for(auto neighbour : container->neighbours_->right_)
+                    std::cout << "    " << neighbour->id_ << std::endl;
+            }
+        }
+
         drawTime -= 1;
+        if(!printed)
+            std::cout << "=================================" << std::endl << RESET;
         printed = true;
         Sleep(1);
     }
     // cleanup
     DeleteObject(pen);
-    DeleteObject(brush);
     ReleaseDC(hdc, hdcMem);
 }
 
