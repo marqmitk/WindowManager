@@ -20,5 +20,5 @@ void updateWindows(bool windowCountChanged = false);
 void splitWindow(MONITORINFO currentMonitor, std::vector<WindowData> windowsOnMonitor);
 void resetWindows();
 size_t getWindowsOnMonitor(MONITORINFO currentMonitor, std::vector<WindowData>& windowsOnMonitor);
-WindowData& getOverlappedWindowData(WindowData& movedWindowData, std::vector<HWND> windowsOnMonitor);
-void swapWindows(WindowData& window1, WindowData& window2);
+WindowData* getOverlappedWindowData(WindowData* movedWindowData, std::vector<HWND> windowsOnMonitor);
+void swapWindows(WindowData* window1, WindowData* window2);

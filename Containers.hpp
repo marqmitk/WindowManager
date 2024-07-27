@@ -93,6 +93,7 @@ class WindowData : public Desktop
 public:
     static size_t lastId;
     size_t id_;
+    ~WindowData();
     BOOL sizePinned_ = false;
     BOOL positionPinned_ = false;
     int zIndex_ = 0;
@@ -110,6 +111,8 @@ public:
     void resizeWindow(Direction direction, long offset);
     bool isWindowInDirection(WindowData* window, Direction direction);
     void pushResizeWindow(Direction direction, long offset); // pushing with negative offset is pulling
+
+    void closeWindow();
 };
 
 class Neighbours
@@ -128,5 +131,6 @@ public:
     void addNeighbour(WindowData* window, int direction);
     void addNeighbour(Container* container, Direction direction);
     void clearNeighbours(Direction direction = -1);
+    void removeNeighbour(WindowData* window);
     bool noNeighbours();
 };

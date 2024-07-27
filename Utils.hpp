@@ -19,7 +19,7 @@ class WindowData;
 extern int taskBarHeight;
 extern std::vector<HWND> windows;
 extern std::vector<Container*> containers;
-extern std::map<HWND, WindowData> windowMap;
+extern std::map<HWND, WindowData*> windowMap;
 extern std::vector<std::string> blacklist;
 extern int amountOfWindows;
 extern int prevAmountOfWindows;

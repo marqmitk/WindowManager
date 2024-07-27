@@ -306,9 +306,7 @@ void Container::printStructure(int depth)
     if(parent == nullptr)
         std::cout << "<" << this->id_ << " parent='None'>" << std::endl;
     else
-    {
         std::cout << "<" << this->id_ << " parent='" << parent->id_ << "'>" << std::endl;
-    }
     int i = 0;
     for(auto leaf : m_leafs_)
     {
@@ -388,10 +386,10 @@ void Desktop::fillNeighbours(int gap)
                 if(type_ == DesktopType::WINDOW && hwnd == dynamic_cast<WindowData*>(this)->hwnd_)
                     continue;
                 if(type_ == DesktopType::CONTAINER)
-                    if(dynamic_cast<Container*>(this)->hasChild(&windowMap[hwnd]))
+                    if(dynamic_cast<Container*>(this)->hasChild(windowMap[hwnd]))
                         continue;
 
-                WindowData* windowData = &(windowMap[hwnd]);
+                WindowData* windowData = windowMap[hwnd];
                 RECT windowRect = windowData->rect_;
                 RECT intersection;
                 if(IntersectRect(&intersection, &raytraceRect, &windowRect))
@@ -417,9 +415,7 @@ void Desktop::fillNeighbours(int gap)
                 RECT containerRect = container->rect_;
                 RECT intersection;
                 if(IntersectRect(&intersection, &raytraceRect, &containerRect))
-                {
                     neighbours_->addNeighbour(container, direction);
-                }
             }
 
             switch(direction)
@@ -546,13 +542,34 @@ std::vector<Container*> WindowData::getAllParentContainers(bool withRoot)
     while(parent != nullptr)
     {
         if(parent->type_ == DesktopType::CONTAINER)
-        {
             if(withRoot || parent != root)
                 tempContainers.push_back(dynamic_cast<Container*>(parent));
-        }
+
         parent = parent->parent_;
     }
     return tempContainers;
+}
+
+void WindowData::closeWindow()
+{
+    SendMessage(this->hwnd_, WM_CLOSE, 0, 0);
+}
+
+WindowData::~WindowData()
+{
+  std::cout << "Deleting window " << this->id_ << std::endl;
+    windows.erase(std::remove(windows.begin(), windows.end(), this->hwnd_), windows.end());
+    windowMap.erase(this->hwnd_);
+    if(this->parent_ != nullptr)
+        this->parent_->removeLeaf(this);
+    for(auto pair : windowMap)
+    {
+        WindowData* window = pair.second;
+        if(window->neighbours_->noNeighbours())
+            continue;
+        window->neighbours_->removeNeighbour(this);
+    }
+    delete this->neighbours_;
 }
 
 void Neighbours::addNeighbour(WindowData* window, Direction direction)
@@ -666,4 +683,40 @@ std::vector<Container*> Neighbours::getContainerNeighbours(Direction direction)
         return bottomContainers_;
     }
     return std::vector<Container*>();
+}
+
+void Neighbours::removeNeighbour(WindowData* window)
+{
+    for(auto it = left_.begin(); it != left_.end(); it++)
+    {
+        if(*it == window)
+        {
+            left_.erase(it);
+            return;
+        }
+    }
+    for(auto it = top_.begin(); it != top_.end(); it++)
+    {
+        if(*it == window)
+        {
+            top_.erase(it);
+            return;
+        }
+    }
+    for(auto it = right_.begin(); it != right_.end(); it++)
+    {
+        if(*it == window)
+        {
+            right_.erase(it);
+            return;
+        }
+    }
+    for(auto it = bottom_.begin(); it != bottom_.end(); it++)
+    {
+        if(*it == window)
+        {
+            bottom_.erase(it);
+            return;
+        }
+    }
 }
